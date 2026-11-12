@@ -1,0 +1,1997 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Geo-Shift: Misi Penjelajah Koordinat (1–2 Pemain)</title>
+  <!-- Tailwind CSS untuk tata letak responsif & estetika modern -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <!-- Font Google: Orbitron untuk nuansa Sci-Fi & Plus Jakarta Sans untuk keterbacaan soal -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Gaya Kustom Game Sci-Fi */
+    :root {
+      --bg-space: #060913;
+      --panel-bg: rgba(15, 23, 42, 0.85);
+      --accent-cyan: #06b6d4;
+      --accent-purple: #8b5cf6;
+      --accent-amber: #f59e0b;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #02040a;
+      color: #f8fafc;
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Bingkai Utama Game Terkunci Rasio 16:9 */
+    #game-viewport-16-9 {
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      aspect-ratio: 16 / 9;
+      container-type: size;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: var(--bg-space);
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(6, 182, 212, 0.14) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(139, 92, 246, 0.16) 0%, transparent 45%),
+        radial-gradient(#1e293b 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 2.2cqmin 2.2cqmin;
+      box-shadow: 0 0 60px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(51, 65, 85, 0.55);
+    }
+
+    .font-scifi {
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    /* Animasi Glow & Hyper-Drive */
+    .neon-border {
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.25), inset 0 0 10px rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.4);
+    }
+
+    .hyperdrive-active {
+      animation: pulseHyper 1.5s infinite alternate;
+      border-color: #f59e0b !important;
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.5), inset 0 0 15px rgba(245, 158, 11, 0.2) !important;
+    }
+
+    @keyframes pulseHyper {
+      from { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+      to { box-shadow: 0 0 32px rgba(236, 72, 153, 0.75); }
+    }
+
+    .btn-scifi {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-scifi:hover:not(:disabled) {
+      transform: translateY(-2px);
+      filter: brightness(1.1);
+    }
+    .btn-scifi:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+
+    /* Input Number tanpa panah default */
+    input[type="text"].coord-input {
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 0.05em;
+    }
+
+    /* Skala Proporsional Berdasarkan Tinggi/Lebar Stage 16:9 */
+    .stage-header {
+      padding: 1.4cqh 2.2cqw;
+    }
+    .stage-main {
+      flex: 1 1 0%;
+      min-height: 0;
+      padding: 1.4cqh 2.2cqw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CONTAINER UTAMA RASIO 16:9 -->
+  <div id="game-viewport-16-9" class="selection:bg-cyan-500 selection:text-slate-950">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="stage-header w-full border-b border-slate-800/80 bg-slate-950/85 backdrop-blur-md z-30 shrink-0">
+    <div class="w-full mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 cursor-pointer" onclick="app.showScreen('title')">
+        <div class="w-[4.6cqh] h-[4.6cqh] min-w-[28px] min-h-[28px] rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+          <!-- Ikon Roket SVG -->
+          <svg class="w-[2.8cqh] h-[2.8cqh] text-slate-950" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="font-scifi font-bold text-[2.2cqh] tracking-wider bg-gradient-to-r from-cyan-300 via-sky-200 to-purple-300 bg-clip-text text-transparent leading-none">
+            GEO-SHIFT
+          </h1>
+          <p class="text-[1.35cqh] text-slate-400 leading-tight mt-0.5">Misi Penjelajah Koordinat • 16:9 • 1–2 Pemain</p>
+        </div>
+      </div>
+
+      <!-- Status Pilot & Tombol Cepat -->
+      <div class="flex items-center gap-2">
+        <!-- Star-Bits Counter -->
+        <div class="flex items-center gap-1.5 bg-slate-900/90 border border-amber-500/40 px-3 py-1 rounded-full shadow-inner">
+          <span class="text-amber-400 text-[1.8cqh]">✦</span>
+          <span id="hud-starbits" class="font-scifi font-bold text-amber-300 text-[1.7cqh]">0</span>
+          <span class="text-[1.3cqh] text-amber-500/80 uppercase font-semibold">Star-Bits</span>
+        </div>
+
+        <!-- Tombol Buku Saku Rumus -->
+        <button onclick="app.toggleFormulaModal(true)" class="btn-scifi flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600/70 px-3 py-1.5 rounded-xl text-[1.6cqh] font-semibold text-cyan-300">
+          <span>📘</span>
+          <span>Buku Rumus</span>
+        </button>
+
+        <!-- Tombol Garasi Drone -->
+        <button onclick="app.showScreen('garage')" class="btn-scifi flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-purple-500/50 px-3 py-1.5 rounded-xl text-[1.6cqh] font-semibold text-purple-300">
+          <span>🚀</span>
+          <span>Garasi</span>
+        </button>
+
+        <button onclick="document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(()=>{})" title="Layar penuh" class="btn-scifi bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2.5 py-1.5 rounded-xl text-slate-300 text-[1.6cqh]">⛶</button>
+
+        <!-- Tombol Audio Mute/Unmute -->
+        <button id="btn-sound" onclick="sound.toggleMute()" title="Suara Efek" class="btn-scifi bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2.5 py-1.5 rounded-xl text-slate-300 text-[1.6cqh]">
+          🔊
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="stage-main">
+    
+    <!-- =========================================================
+         LAYAR 1: TITLE SCREEN (LAYAR UTAMA)
+         ========================================================= -->
+    <section id="screen-title" class="w-full max-w-[68cqw] mx-auto text-center flex flex-col items-center justify-center gap-[2.2cqh]">
+      <div class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[1.5cqh] font-semibold tracking-wide">
+        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+        SISTEM NAVIGASI TRANSFORMASI GEOMETRI • SMP
+      </div>
+
+      <div class="space-y-[1cqh]">
+        <h2 class="font-scifi text-[6.8cqh] font-black tracking-tight text-white leading-none">
+          GEO-<span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">SHIFT</span>
+        </h2>
+        <p class="text-slate-300 text-[1.95cqh] max-w-[52cqw] mx-auto leading-snug">
+          Kuasai koordinat Kartesius! Kendalikan Drone penjelajah melintasi portal dimensi menggunakan <span class="text-cyan-300 font-semibold">Translasi, Refleksi, Rotasi,</span> dan <span class="text-purple-300 font-semibold">Dilatasi</span>.
+        </p>
+      </div>
+
+      <!-- Kartu Identitas Kadet -->
+      <div class="w-full max-w-[38cqw] mx-auto bg-slate-900/85 backdrop-blur-md p-[2.6cqh] rounded-2xl neon-border space-y-[1.8cqh] text-left">
+        <div>
+          <label for="pilot-name-input" class="block text-[1.45cqh] font-semibold uppercase tracking-wider text-cyan-300 mb-1">
+            Nama Kadet / Siswa
+          </label>
+          <input 
+            type="text" 
+            id="pilot-name-input" 
+            maxlength="24"
+            placeholder="Ketik namamu di sini..." 
+            class="w-full px-3.5 py-[1.3cqh] rounded-xl bg-slate-950/90 border border-slate-700 focus:border-cyan-400 focus:outline-none text-white font-semibold text-[1.9cqh] placeholder-slate-500"
+          />
+        </div>
+
+        <button onclick="app.startFromTitle()" class="btn-scifi w-full py-[1.6cqh] px-5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-scifi font-bold text-[1.9cqh] tracking-wider shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2">
+          <span>MULAI MISI NAVIGASI</span>
+          <span>➔</span>
+        </button>
+
+        <button onclick="duel.openSetup()" class="btn-scifi w-full py-[1.5cqh] px-5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-scifi font-bold text-[1.8cqh] tracking-wider shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2">
+          <span>⚔️ MODE DUEL 2 PEMAIN</span>
+        </button>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <button onclick="app.toggleFormulaModal(true)" class="btn-scifi py-[1.2cqh] px-3 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[1.6cqh] font-semibold flex items-center justify-center gap-1.5">
+            <span>📘</span> Buku Saku Rumus
+          </button>
+          <button onclick="app.showScreen('garage')" class="btn-scifi py-[1.2cqh] px-3 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-purple-500/40 text-purple-200 text-[1.6cqh] font-semibold flex items-center justify-center gap-1.5">
+            <span>🛠️</span> Garasi Drone
+          </button>
+        </div>
+      </div>
+
+      <!-- Statistik Singkat -->
+      <div class="flex justify-center gap-4 text-[1.55cqh] text-slate-400">
+        <div class="bg-slate-900/60 px-4 py-[0.8cqh] rounded-xl border border-slate-800">
+          Misi Selesai: <strong id="stat-missions" class="text-cyan-300">0</strong>
+        </div>
+        <div class="bg-slate-900/60 px-4 py-[0.8cqh] rounded-xl border border-slate-800">
+          Total Bintang: <strong id="stat-stars" class="text-amber-300">0 / 45 ★</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         LAYAR 2: PETA SEKTOR (PEMISAHAN MATERI & KESUKARAN)
+         ========================================================= -->
+    <section id="screen-sectors" class="hidden w-full h-full flex flex-col justify-between gap-[1.6cqh]">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-[1.2cqh] shrink-0">
+        <div>
+          <span class="text-[1.4cqh] font-scifi text-cyan-400 tracking-widest uppercase">Peta Galaksi Koordinat</span>
+          <h2 class="font-scifi text-[2.8cqh] font-bold text-white leading-tight">Pilih Sektor & Tingkat Kesukaran</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-[1.6cqh] text-slate-400">Pilot: <strong id="display-pilot-name" class="text-white">Kadet</strong></span>
+          <button onclick="app.showScreen('title')" class="btn-scifi px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[1.5cqh] text-slate-300 border border-slate-700">
+            ← Kembali
+          </button>
+        </div>
+      </div>
+
+      <!-- Grid 5 Sektor Widescreen (5 Kolom sejajar pas untuk 16:9) -->
+      <div id="sectors-grid" class="grid grid-cols-5 gap-[1.2cqw] flex-1 min-h-0">
+        <!-- Di-render dinamis oleh JS -->
+      </div>
+    </section>
+
+    <!-- =========================================================
+         LAYAR 3: ARENA GAMEPLAY INTERAKTIF (PROPORSIONAL 16:9)
+         ========================================================= -->
+    <section id="screen-game" class="hidden w-full h-full">
+      <div class="grid grid-cols-12 gap-[1.5cqw] w-full h-full items-stretch">
+        
+        <!-- KOLOM KIRI (7 Kolom): BIDANG KARTESIUS CANVAS -->
+        <div class="col-span-7 bg-slate-900/85 backdrop-blur-md rounded-2xl p-[1.5cqh] neon-border flex flex-col gap-[1cqh] h-full min-h-0">
+          <!-- Header Canvas -->
+          <div class="flex items-center justify-between gap-2 px-1 shrink-0">
+            <div class="flex items-center gap-2">
+              <span id="game-sector-badge" class="px-2.5 py-0.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-scifi text-[1.5cqh] font-bold">
+                SEKTOR 1
+              </span>
+              <span id="game-tier-badge" class="px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-300 text-[1.5cqh] font-semibold">
+                Tier 1: Kadet
+              </span>
+            </div>
+
+            <!-- Progress Soal & Streak -->
+            <div class="flex items-center gap-3">
+              <div id="hyperdrive-badge" class="hidden px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-pink-600 text-slate-950 font-scifi font-extrabold text-[1.35cqh] animate-bounce">
+                ⚡ HYPER-DRIVE 2X
+              </div>
+              <div class="text-[1.6cqh] font-semibold text-slate-300">
+                Soal <span id="game-q-num" class="text-cyan-400 font-scifi font-bold">1</span>/5
+              </div>
+              <div class="text-[1.6cqh] font-semibold text-amber-300">
+                Skor: <span id="game-score" class="font-scifi font-bold">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wrapper Canvas Responsif Mengisi Tinggi Tersisa -->
+          <div id="canvas-wrapper" class="relative flex-1 w-full min-h-0 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner">
+            <canvas id="cartesian-canvas" class="w-full h-full block"></canvas>
+            
+            <!-- Legenda Pojok Canvas -->
+            <div class="absolute bottom-2 left-2 bg-slate-950/85 backdrop-blur-sm border border-slate-800 px-2.5 py-1 rounded-lg text-[1.4cqh] flex gap-3 pointer-events-none">
+              <span class="flex items-center gap-1.5 text-cyan-300">
+                <span class="w-2 h-2 rounded-full bg-cyan-400 inline-block"></span> Awal A(x, y)
+              </span>
+              <span class="flex items-center gap-1.5 text-emerald-400">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span> Bayangan A'(x', y')
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KOLOM KANAN (5 Kolom): KOKPIT MISI & INPUT KONTROL -->
+        <div id="cockpit-panel" class="col-span-5 bg-slate-900/90 backdrop-blur-md rounded-2xl p-[2cqh] neon-border flex flex-col justify-between gap-[1.3cqh] h-full min-h-0 overflow-y-auto">
+          
+          <!-- Briefing Misi -->
+          <div class="space-y-[1cqh]">
+            <div class="flex items-center justify-between">
+              <span class="text-[1.45cqh] font-scifi uppercase tracking-wider text-cyan-400">Transmisi Misi</span>
+              <button onclick="app.abortMission()" class="text-[1.5cqh] text-slate-400 hover:text-rose-400 transition">
+                ✕ Keluar Misi
+              </button>
+            </div>
+            
+            <div class="p-[1.5cqh] rounded-xl bg-slate-950/90 border border-slate-800 space-y-[0.7cqh]">
+              <p id="question-context" class="text-[1.5cqh] text-slate-400 font-medium">
+                Koordinat Drone saat ini terdeteksi pada titik:
+              </p>
+              <div id="question-point" class="font-scifi text-[2.6cqh] font-bold text-cyan-300">
+                A(3, -2)
+              </div>
+              <p id="question-instruction" class="text-[1.85cqh] text-white font-semibold leading-snug pt-1 border-t border-slate-800/80">
+                Tentukan koordinat bayangan jika dicerminkan terhadap Sumbu X!
+              </p>
+            </div>
+          </div>
+
+          <!-- Area Input Koordinat -->
+          <form id="answer-form" onsubmit="game.submitAnswer(event)" class="space-y-[1.4cqh]">
+            <div>
+              <label id="input-label-title" class="block text-[1.45cqh] font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                Masukkan Koordinat Target A'(x', y')
+              </label>
+              <div class="grid grid-cols-2 gap-2.5">
+                <div class="bg-slate-950 px-3 py-[1.1cqh] rounded-xl border border-slate-700 focus-within:border-cyan-400 transition">
+                  <label for="input-x" class="block text-[1.35cqh] text-cyan-400 font-scifi mb-0.5">Nilai X'</label>
+                  <input 
+                    type="text" 
+                    id="input-x" 
+                    autocomplete="off"
+                    placeholder="misal: -3" 
+                    required
+                    class="coord-input w-full bg-transparent text-white text-[2.3cqh] font-bold focus:outline-none"
+                  />
+                </div>
+                <div class="bg-slate-950 px-3 py-[1.1cqh] rounded-xl border border-slate-700 focus-within:border-purple-400 transition">
+                  <label for="input-y" class="block text-[1.35cqh] text-purple-400 font-scifi mb-0.5">Nilai Y'</label>
+                  <input 
+                    type="text" 
+                    id="input-y" 
+                    autocomplete="off"
+                    placeholder="misal: 2" 
+                    required
+                    class="coord-input w-full bg-transparent text-white text-[2.3cqh] font-bold focus:outline-none"
+                  />
+                </div>
+              </div>
+              <p class="text-[1.35cqh] text-slate-400 mt-1">
+                *Mendukung bulat, desimal (<code class="text-cyan-300">-2.5</code>), atau pecahan (<code class="text-cyan-300">-5/2</code>).
+              </p>
+            </div>
+
+            <!-- Tombol Aksi Utama -->
+            <div class="flex gap-2">
+              <button type="submit" id="btn-launch" class="btn-scifi flex-1 py-[1.5cqh] px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-scifi font-bold text-[1.7cqh] tracking-wider shadow-lg shadow-emerald-500/20">
+                🚀 LUNCURKAN DRONE
+              </button>
+              <button type="button" id="btn-hint" onclick="game.useHint()" class="btn-scifi py-[1.5cqh] px-3.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/50 text-amber-300 font-semibold text-[1.6cqh] flex items-center justify-center gap-1.5">
+                <span>📡</span> Radar
+              </button>
+            </div>
+          </form>
+
+          <!-- Kotak Radar Petunjuk (Hint) -->
+          <div id="hint-box" class="hidden p-[1.3cqh] rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-[1.55cqh] space-y-0.5">
+            <div class="font-bold text-amber-400 flex items-center gap-1.5">
+              <span>📡</span> SINYAL RADAR RUMUS AKTIF:
+            </div>
+            <p id="hint-text" class="leading-snug font-medium"></p>
+          </div>
+
+          <!-- Kotak Umpan Balik Diagnostik AI Co-Pilot -->
+          <div id="feedback-box" class="hidden p-[1.4cqh] rounded-xl border text-[1.55cqh] space-y-1.5 transition-all">
+            <div class="flex items-center justify-between">
+              <span id="feedback-title" class="font-scifi font-bold uppercase tracking-wide"></span>
+              <span id="feedback-points" class="font-scifi font-bold text-[1.45cqh]"></span>
+            </div>
+            <p id="feedback-message" class="leading-snug"></p>
+            <button id="btn-next-question" onclick="game.nextQuestion()" class="hidden btn-scifi w-full mt-1.5 py-[1.2cqh] px-4 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-scifi font-bold text-[1.55cqh] tracking-wider">
+              LANJUT KE KOORDINAT BERIKUTNYA ➔
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         LAYAR 4: KARTU LAPORAN / SERTIFIKAT DIGITAL AKHIR MISI
+         ========================================================= -->
+    <section id="screen-summary" class="hidden w-full max-w-[54cqw] mx-auto">
+      <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 rounded-3xl p-[3cqh] neon-border shadow-2xl space-y-[1.8cqh] relative overflow-hidden">
+        <!-- Dekorasi Sudut Sertifikat -->
+        <div class="absolute top-0 right-0 w-28 h-28 bg-cyan-500/10 rounded-bl-full pointer-events-none"></div>
+        <div class="absolute bottom-0 left-0 w-28 h-28 bg-purple-500/10 rounded-tr-full pointer-events-none"></div>
+
+        <div class="text-center space-y-1 border-b border-slate-800 pb-[1.6cqh]">
+          <span class="px-3 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-scifi text-[1.35cqh] tracking-widest uppercase">
+            Laporan Misi Selesai • Geo-Shift
+          </span>
+          <h2 class="font-scifi text-[3.4cqh] font-black text-white">SERTIFIKAT NAVIGATOR</h2>
+          <p class="text-[1.5cqh] text-slate-400">Diberikan kepada Kadet Penjelajah Koordinat:</p>
+          <div id="cert-pilot-name" class="font-scifi text-[2.6cqh] font-bold text-cyan-300">
+            NAMA SISWA
+          </div>
+        </div>
+
+        <!-- Bintang Pencapaian -->
+        <div id="cert-stars" class="flex justify-center gap-3 text-[5cqh] leading-none">
+          <span>★</span><span>★</span><span>★</span>
+        </div>
+
+        <!-- Detail Statistik Misi -->
+        <div class="grid grid-cols-4 gap-2.5 text-center">
+          <div class="bg-slate-950/90 p-[1.3cqh] rounded-2xl border border-slate-800">
+            <div class="text-[1.4cqh] text-slate-400">Sektor Materi</div>
+            <div id="cert-sector" class="font-bold text-[1.75cqh] text-white mt-0.5">Translasi</div>
+          </div>
+          <div class="bg-slate-950/90 p-[1.3cqh] rounded-2xl border border-slate-800">
+            <div class="text-[1.4cqh] text-slate-400">Tingkat</div>
+            <div id="cert-tier" class="font-bold text-[1.75cqh] text-purple-300 mt-0.5">Kadet</div>
+          </div>
+          <div class="bg-slate-950/90 p-[1.3cqh] rounded-2xl border border-slate-800">
+            <div class="text-[1.4cqh] text-slate-400">Akurasi</div>
+            <div id="cert-accuracy" class="font-scifi font-bold text-[1.9cqh] text-emerald-400 mt-0.5">100%</div>
+          </div>
+          <div class="bg-slate-950/90 p-[1.3cqh] rounded-2xl border border-slate-800">
+            <div class="text-[1.4cqh] text-slate-400">Skor Akhir</div>
+            <div id="cert-score" class="font-scifi font-bold text-[1.9cqh] text-cyan-300 mt-0.5">500</div>
+          </div>
+        </div>
+
+        <!-- Reward Star-Bits Didapat -->
+        <div class="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-[1.5cqh] flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="text-[3cqh]">✦</span>
+            <div>
+              <div class="text-[1.65cqh] text-amber-200 font-semibold">Hadiah Star-Bits Diperoleh</div>
+              <div class="text-[1.4cqh] text-amber-400/80">Gunakan di Garasi untuk upgrade Drone!</div>
+            </div>
+          </div>
+          <div id="cert-reward" class="font-scifi text-[2.6cqh] font-black text-amber-300">
+            +120
+          </div>
+        </div>
+
+        <p class="text-center text-[1.45cqh] text-slate-400 italic">
+          💡 Tips: Kamu bisa melakukan <strong>Screenshot</strong> layar sertifikat ini sebagai bukti penyelesaian tugas kepada Guru Matematika!
+        </p>
+
+        <!-- Tombol Navigasi Akhir -->
+        <div class="grid grid-cols-3 gap-3">
+          <button onclick="app.retryCurrentMission()" class="btn-scifi py-[1.4cqh] px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-semibold text-[1.65cqh]">
+            ↻ Ulangi Misi
+          </button>
+          <button onclick="app.showScreen('garage')" class="btn-scifi py-[1.4cqh] px-4 rounded-xl bg-purple-600/30 hover:bg-purple-600/40 border border-purple-500/50 text-purple-200 font-semibold text-[1.65cqh]">
+            🛠️ Ke Garasi
+          </button>
+          <button onclick="app.showScreen('sectors')" class="btn-scifi py-[1.4cqh] px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-scifi font-bold text-[1.65cqh]">
+            PETA SEKTOR ➔
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         LAYAR 5: GARASI DRONE (TOKO KUSTOMISASI REWARD)
+         ========================================================= -->
+    <section id="screen-garage" class="hidden w-full max-w-[74cqw] mx-auto flex flex-col justify-center gap-[2cqh] h-full">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-[1.2cqh]">
+        <div>
+          <span class="text-[1.4cqh] font-scifi text-purple-400 uppercase tracking-widest">Hanggar Kustomisasi</span>
+          <h2 class="font-scifi text-[2.8cqh] font-bold text-white">Garasi Drone & Jejak Laser</h2>
+        </div>
+        <button onclick="app.showScreen('sectors')" class="btn-scifi px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-[1.6cqh] font-semibold text-cyan-300 border border-slate-700">
+          ← Ke Peta Sektor
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-[2cqw]">
+        <!-- Kustomisasi Warna/Model Drone -->
+        <div class="bg-slate-900/85 p-[2cqh] rounded-2xl neon-border space-y-[1.4cqh]">
+          <h3 class="font-scifi text-[2cqh] font-bold text-cyan-300 flex items-center gap-2">
+            <span>🚀</span> Skin Pesawat Drone
+          </h3>
+          <div id="garage-skins-list" class="space-y-[1.1cqh]">
+            <!-- Di-render oleh JS -->
+          </div>
+        </div>
+
+        <!-- Kustomisasi Jejak Laser -->
+        <div class="bg-slate-900/85 p-[2cqh] rounded-2xl neon-border space-y-[1.4cqh]">
+          <h3 class="font-scifi text-[2cqh] font-bold text-purple-300 flex items-center gap-2">
+            <span>⚡</span> Warna Jejak Laser Lintasan
+          </h3>
+          <div id="garage-trails-list" class="space-y-[1.1cqh]">
+            <!-- Di-render oleh JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========== MODE DUEL 2 PEMAIN: SETUP =========== -->
+    <section id="screen-duel-setup" class="hidden w-full max-w-[64cqw] mx-auto h-full flex flex-col justify-center gap-[1.8cqh]">
+      <div class="text-center">
+        <span class="font-scifi text-[1.4cqh] text-cyan-400 tracking-widest">MODE DUEL • 1 LAYAR 2 PEMAIN</span>
+        <h2 class="font-scifi text-[3.4cqh] font-bold text-white leading-tight">Siapkan Duel Navigator</h2>
+      </div>
+      <div class="grid grid-cols-2 gap-[1.5cqw]">
+        <div class="bg-slate-900/85 rounded-2xl p-[1.6cqh] border border-cyan-500/50">
+          <label class="block text-[1.4cqh] font-scifi text-cyan-300 mb-1">🔵 PEMAIN 1 (kiri)</label>
+          <input id="duel-n0" maxlength="16" placeholder="Nama Pemain 1" class="w-full px-3 py-[1.1cqh] rounded-xl bg-slate-950 border border-slate-700 focus:border-cyan-400 focus:outline-none text-white font-semibold text-[1.8cqh]" />
+        </div>
+        <div class="bg-slate-900/85 rounded-2xl p-[1.6cqh] border border-purple-500/50">
+          <label class="block text-[1.4cqh] font-scifi text-purple-300 mb-1">🟣 PEMAIN 2 (kanan)</label>
+          <input id="duel-n1" maxlength="16" placeholder="Nama Pemain 2" class="w-full px-3 py-[1.1cqh] rounded-xl bg-slate-950 border border-slate-700 focus:border-purple-400 focus:outline-none text-white font-semibold text-[1.8cqh]" />
+        </div>
+      </div>
+      <div class="bg-slate-900/85 rounded-2xl neon-border p-[1.8cqh] space-y-[1.2cqh]">
+        <div>
+          <div class="text-[1.4cqh] font-semibold uppercase tracking-wider text-slate-300 mb-1">Sektor Materi</div>
+          <div id="duel-sectors" class="grid grid-cols-5 gap-2"></div>
+        </div>
+        <div>
+          <div class="text-[1.4cqh] font-semibold uppercase tracking-wider text-slate-300 mb-1">Tingkat Kesukaran</div>
+          <div id="duel-tiers" class="grid grid-cols-3 gap-2"></div>
+        </div>
+      </div>
+      <div class="text-[1.35cqh] text-slate-400 leading-snug bg-slate-900/60 rounded-xl border border-slate-800 p-[1.2cqh]">
+        <b class="text-slate-200">Kontrol:</b> Pemain 1 → baris angka keyboard (<code class="text-cyan-300">1-0</code>, <code class="text-cyan-300">-</code>, <code class="text-cyan-300">/</code>, <code class="text-cyan-300">.</code>; Spasi = pindah kolom, Enter = luncur, ⌫ = hapus).
+        Pemain 2 → Numpad (angka, <code class="text-purple-300">−</code>, <code class="text-purple-300">/</code>, <code class="text-purple-300">.</code>; <code class="text-purple-300">+</code> = pindah kolom, <code class="text-purple-300">*</code> = hapus, Enter = luncur).
+        Di layar sentuh atau mouse, pakai keypad pada panel masing-masing. Soal sama untuk kedua pemain; skor tertinggi menang, bonus +50 untuk yang tercepat di tiap soal.
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <button onclick="app.showScreen('title')" class="btn-scifi py-[1.3cqh] rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-semibold text-[1.6cqh]">← Menu Utama</button>
+        <button onclick="duel.start()" class="btn-scifi col-span-2 py-[1.3cqh] rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-scifi font-bold text-[1.8cqh] tracking-wider">⚔️ MULAI DUEL</button>
+      </div>
+    </section>
+
+    <!-- =========== MODE DUEL: ARENA SPLIT-SCREEN =========== -->
+    <section id="screen-duel" class="hidden relative w-full h-full">
+      <div id="duel-arena" class="grid grid-cols-2 gap-[1.2cqw] w-full h-full"></div>
+      <button onclick="duel.openSetup()" title="Keluar duel" class="absolute left-1/2 -translate-x-1/2 -top-[0.6cqh] z-10 px-3 py-[0.3cqh] rounded-b-lg bg-slate-900 border border-slate-700 text-slate-400 hover:text-rose-400 text-[1.3cqh]">✕ Keluar Duel</button>
+    </section>
+
+    <!-- =========== MODE DUEL: HASIL =========== -->
+    <section id="screen-duel-result" class="hidden w-full max-w-[66cqw] mx-auto h-full flex flex-col justify-center gap-[2cqh]"></section>
+
+  </main>
+
+  <!-- =========================================================
+       MODAL BUKU SAKU RUMUS TRANSFORMASI GEOMETRI (DI DALAM STAGE 16:9)
+       ========================================================= -->
+  <div id="formula-modal" class="hidden absolute inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-[3cqh]">
+    <div class="bg-slate-900 border border-cyan-500/40 rounded-3xl max-w-[68cqw] w-full max-h-[88cqh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-5 py-[1.6cqh] border-b border-slate-800 flex items-center justify-between bg-slate-950/60 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <span class="text-[2.4cqh]">📘</span>
+          <div>
+            <h3 class="font-scifi font-bold text-[2.1cqh] text-cyan-300">BUKU SAKU RUMUS TRANSFORMASI</h3>
+            <p class="text-[1.4cqh] text-slate-400">Referensi cepat untuk titik awal A(x, y)</p>
+          </div>
+        </div>
+        <button onclick="app.toggleFormulaModal(false)" class="w-[3.6cqh] h-[3.6cqh] rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-300 flex items-center justify-center font-bold text-[1.8cqh]">
+          ✕
+        </button>
+      </div>
+
+      <div class="p-[2.2cqh] overflow-y-auto space-y-[1.6cqh] text-[1.6cqh]">
+        <!-- 1. Translasi -->
+        <div class="bg-slate-950/80 p-[1.5cqh] rounded-2xl border border-slate-800 space-y-1">
+          <h4 class="font-scifi font-bold text-cyan-400">1. TRANSLASI (Pergeseran)</h4>
+          <p class="text-slate-300">Digeser sejauh <code class="text-cyan-300">T(a, b)</code>: <span class="font-mono text-emerald-300 ml-2">A(x, y) ➔ A'(x + a, y + b)</span></p>
+        </div>
+
+        <!-- 2. Refleksi -->
+        <div class="bg-slate-950/80 p-[1.5cqh] rounded-2xl border border-slate-800 space-y-1.5">
+          <h4 class="font-scifi font-bold text-purple-400">2. REFLEKSI (Pencerminan)</h4>
+          <div class="grid grid-cols-2 gap-1.5 font-mono text-[1.45cqh]">
+            <div class="p-2 rounded-lg bg-slate-900 flex justify-between">
+              <span class="text-slate-400">Sumbu X:</span>
+              <span class="text-emerald-300">(x, -y)</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900 flex justify-between">
+              <span class="text-slate-400">Sumbu Y:</span>
+              <span class="text-emerald-300">(-x, y)</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900 flex justify-between">
+              <span class="text-slate-400">Titik Asal O(0,0):</span>
+              <span class="text-emerald-300">(-x, -y)</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900 flex justify-between">
+              <span class="text-slate-400">Garis y = x:</span>
+              <span class="text-emerald-300">(y, x)</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900 flex justify-between">
+              <span class="text-slate-400">Garis y = -x:</span>
+              <span class="text-emerald-300">(-y, -x)</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900 flex justify-between">
+              <span class="text-slate-400">Garis x = h:</span>
+              <span class="text-emerald-300">(2h - x, y)</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900 flex justify-between col-span-2">
+              <span class="text-slate-400">Garis y = h (atau y = k):</span>
+              <span class="text-emerald-300">(x, 2h - y)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Rotasi & 4. Dilatasi Berdampingan -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="bg-slate-950/80 p-[1.5cqh] rounded-2xl border border-slate-800 space-y-1.5">
+            <h4 class="font-scifi font-bold text-amber-400">3. ROTASI (Pusat O)</h4>
+            <div class="space-y-1 font-mono text-[1.45cqh]">
+              <div class="p-1.5 rounded bg-slate-900 flex justify-between">
+                <span class="text-slate-300">+90°:</span>
+                <span class="text-emerald-300">A'(-y, x)</span>
+              </div>
+              <div class="p-1.5 rounded bg-slate-900 flex justify-between">
+                <span class="text-slate-300">-90°:</span>
+                <span class="text-emerald-300">A'(y, -x)</span>
+              </div>
+              <div class="p-1.5 rounded bg-slate-900 flex justify-between">
+                <span class="text-slate-300">180°:</span>
+                <span class="text-emerald-300">A'(-x, -y)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-slate-950/80 p-[1.5cqh] rounded-2xl border border-slate-800 space-y-1.5">
+            <h4 class="font-scifi font-bold text-rose-400">4. DILATASI (Pusat O)</h4>
+            <p class="text-slate-300 text-[1.45cqh]">Dengan faktor skala <code class="text-rose-300">k</code>:</p>
+            <div class="p-2 rounded-lg bg-slate-900 font-mono text-emerald-300 text-[1.55cqh]">
+              A(x, y) ➔ A'(k · x, k · y)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-5 py-[1.4cqh] border-t border-slate-800 bg-slate-950/60 text-right shrink-0">
+        <button onclick="app.toggleFormulaModal(false)" class="btn-scifi px-5 py-1.5 rounded-xl bg-cyan-500 text-slate-950 font-scifi font-bold text-[1.55cqh]">
+          SIAP MENGERTI!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- END #game-viewport-16-9 -->
+
+  <!-- =========================================================
+       LOGIKA JAVASCRIPT LENGKAP GAME EDUKASI
+       ========================================================= -->
+  <script>
+    /**
+     * MODUL 1: SYNTHESIZER AUDIO (WEB AUDIO API - TANPA FILE EKSTERNAL)
+     * Menghasilkan efek suara sci-fi untuk klik, peluncuran, berhasil, gagal, dan level up.
+     */
+    const sound = {
+      ctx: null,
+      muted: false,
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+      },
+      toggleMute() {
+        this.muted = !this.muted;
+        document.getElementById('btn-sound').textContent = this.muted ? '🔇' : '🔊';
+      },
+      playTone(freq, type, duration, vol = 0.12, slideTo = null) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        if (slideTo) {
+          osc.frequency.exponentialRampToValueAtTime(slideTo, this.ctx.currentTime + duration);
+        }
+
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+      },
+      click() { this.playTone(620, 'sine', 0.08, 0.08); },
+      launch() { this.playTone(220, 'sawtooth', 0.35, 0.09, 680); },
+      success() {
+        this.playTone(523.25, 'triangle', 0.14, 0.14);
+        setTimeout(() => this.playTone(659.25, 'triangle', 0.14, 0.14), 110);
+        setTimeout(() => this.playTone(783.99, 'triangle', 0.28, 0.16), 220);
+      },
+      error() {
+        this.playTone(240, 'sawtooth', 0.2, 0.12, 130);
+        setTimeout(() => this.playTone(170, 'sawtooth', 0.25, 0.12, 110), 160);
+      },
+      hint() { this.playTone(880, 'sine', 0.18, 0.09, 1100); }
+    };
+
+    /**
+     * MODUL 2: DATA MASTER SEKTOR, KOSMETIK GARASI, & STATE PENYIMPANAN
+     */
+    const SECTORS_DATA = [
+      {
+        id: 'translasi',
+        code: 'SEKTOR 01',
+        title: 'Translasi',
+        subtitle: 'Pergeseran T(a, b)',
+        color: 'cyan',
+        desc: 'Pindahkan drone sejajar sumbu X dan Y sejauh komponen translasi.'
+      },
+      {
+        id: 'refleksi',
+        code: 'SEKTOR 02',
+        title: 'Refleksi',
+        subtitle: 'Sumbu X, Y, O, y=±x, x=h, y=h',
+        color: 'purple',
+        desc: 'Pantulkan posisi drone melewati berbagai garis cermin koordinat.'
+      },
+      {
+        id: 'rotasi',
+        code: 'SEKTOR 03',
+        title: 'Rotasi',
+        subtitle: 'Putaran +90°, -90°, 180° Pusat O',
+        color: 'amber',
+        desc: 'Putar orbit pesawat mengelilingi titik pusat O(0, 0).'
+      },
+      {
+        id: 'dilatasi',
+        code: 'SEKTOR 04',
+        title: 'Dilatasi',
+        subtitle: 'Skala Positif, Pecahan, Negatif',
+        color: 'rose',
+        desc: 'Perbesar atau perkecil jarak orbit drone dari pusat O(0, 0).'
+      },
+      {
+        id: 'boss',
+        code: 'SEKTOR 05 • BOSS',
+        title: 'Misi Campuran',
+        subtitle: 'Ujian Komandan Gabungan',
+        color: 'emerald',
+        desc: 'Tantangan acak seluruh materi transformasi geometri!'
+      }
+    ];
+
+    const GARAGE_ITEMS = {
+      skins: [
+        { id: 'cyan_viper', name: 'Viper Cyan (Standar)', color: '#22d3ee', cost: 0 },
+        { id: 'gold_phoenix', name: 'Phoenix Emas', color: '#fbbf24', cost: 150 },
+        { id: 'crimson_nova', name: 'Nova Merah', color: '#f43f5e', cost: 300 },
+        { id: 'emerald_ghost', name: 'Phantom Zamrud', color: '#34d399', cost: 500 }
+      ],
+      trails: [
+        { id: 'cyan_beam', name: 'Laser Biru Ion', color: '#38bdf8', cost: 0 },
+        { id: 'purple_plasma', name: 'Plasma Ungu', color: '#c084fc', cost: 120 },
+        { id: 'amber_solar', name: 'Suar Surya', color: '#fbbf24', cost: 250 },
+        { id: 'pink_hyper', name: 'Neon Magenta', color: '#f472b6', cost: 400 }
+      ]
+    };
+
+    const STORAGE_KEY = 'geoshift_save_v1';
+
+    const state = {
+      pilotName: '',
+      starBits: 100, // Modal awal 100 Star-Bits agar siswa bisa mencoba garasi
+      missionsCompleted: 0,
+      progress: {}, // Format: "translasi_1": 3 (jumlah bintang 0-3)
+      unlockedSkins: ['cyan_viper'],
+      equippedSkin: 'cyan_viper',
+      unlockedTrails: ['cyan_beam'],
+      equippedTrail: 'cyan_beam',
+
+      load() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            Object.assign(this, parsed);
+          }
+        } catch (e) {
+          console.warn('Gagal memuat data penyimpanan:', e);
+        }
+      },
+      save() {
+        try {
+          const dataToSave = {
+            pilotName: this.pilotName,
+            starBits: this.starBits,
+            missionsCompleted: this.missionsCompleted,
+            progress: this.progress,
+            unlockedSkins: this.unlockedSkins,
+            equippedSkin: this.equippedSkin,
+            unlockedTrails: this.unlockedTrails,
+            equippedTrail: this.equippedTrail
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        } catch (e) {
+          console.warn('Gagal menyimpan data:', e);
+        }
+        app.updateHUD();
+      }
+    };
+
+    /**
+     * MODUL 3: GENERATOR SOAL & DIAGNOSA KESALAHAN CERDAS
+     */
+    const mathEngine = {
+      randInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      },
+      randNonZero(min, max) {
+        let n = 0;
+        while (n === 0) n = this.randInt(min, max);
+        return n;
+      },
+      // Parsing input siswa (mendukung desimal "-2.5", koma "-2,5", dan pecahan "-5/2")
+      parseCoord(str) {
+        if (!str) return NaN;
+        const cleaned = str.trim().replace(',', '.');
+        if (cleaned.includes('/')) {
+          const parts = cleaned.split('/');
+          if (parts.length !== 2) return NaN;
+          const num = parseFloat(parts[0]);
+          const den = parseFloat(parts[1]);
+          if (isNaN(num) || isNaN(den) || den === 0) return NaN;
+          return num / den;
+        }
+        return parseFloat(cleaned);
+      },
+      formatNum(n) {
+        return Number.isInteger(n) ? n.toString() : Number(n.toFixed(2)).toString();
+      },
+
+      generateQuestion(sectorId, tier) {
+        const actualSector = sectorId === 'boss'
+          ? ['translasi', 'refleksi', 'rotasi', 'dilatasi'][this.randInt(0, 3)]
+          : sectorId;
+
+        // Tentukan rentang koordinat berdasarkan tier
+        const range = tier === 1 ? 5 : (tier === 2 ? 8 : 10);
+        let x = this.randNonZero(-range, range);
+        let y = this.randNonZero(-range, range);
+        // Hindari x == y pada soal refleksi tertentu agar tidak ambigu
+        if (x === y) y = x > 0 ? x - 2 : x + 2;
+        if (y === 0) y = 1;
+
+        let q = {
+          sector: actualSector,
+          tier,
+          origX: x,
+          origY: y,
+          targetX: 0,
+          targetY: 0,
+          isReverse: false, // Khusus Tier 3: diketahui bayangan A', cari titik awal A
+          instruction: '',
+          hint: '',
+          mirrorLine: null, // Untuk visualisasi cermin di canvas
+          transformMeta: {}
+        };
+
+        if (actualSector === 'translasi') {
+          const a = this.randNonZero(-6, 6);
+          const b = this.randNonZero(-6, 6);
+          q.targetX = x + a;
+          q.targetY = y + b;
+          q.transformMeta = { a, b };
+          q.instruction = `Lakukan Translasi oleh T(${a}, ${b}) untuk menentukan koordinat bayangan A'!`;
+          q.hint = `Rumus Translasi T(a, b): A'(x + a, y + b). Hitung (${x} + (${a}), ${y} + (${b})).`;
+        } 
+        else if (actualSector === 'refleksi') {
+          // Tier 1 fokus pada sumbu X, sumbu Y, dan titik asal O(0,0)
+          // Tier 2 & 3 mencakup semua jenis refleksi termasuk y=x, y=-x, x=h, y=h
+          const typesTier1 = ['sumbuX', 'sumbuY', 'asalO'];
+          const typesAll = ['sumbuX', 'sumbuY', 'asalO', 'y_eq_x', 'y_eq_neg_x', 'x_eq_h', 'y_eq_h'];
+          const pool = tier === 1 ? typesTier1 : typesAll;
+          const rType = pool[this.randInt(0, pool.length - 1)];
+
+          if (rType === 'sumbuX') {
+            q.targetX = x; q.targetY = -y;
+            q.mirrorLine = { type: 'xAxis' };
+            q.instruction = `Cerminkan titik A terhadap Sumbu X!`;
+            q.hint = `Refleksi terhadap Sumbu X: A(x, y) ➔ A'(x, -y). Nilai x tetap, tanda y berlawanan.`;
+          } else if (rType === 'sumbuY') {
+            q.targetX = -x; q.targetY = y;
+            q.mirrorLine = { type: 'yAxis' };
+            q.instruction = `Cerminkan titik A terhadap Sumbu Y!`;
+            q.hint = `Refleksi terhadap Sumbu Y: A(x, y) ➔ A'(-x, y). Tanda x berlawanan, nilai y tetap.`;
+          } else if (rType === 'asalO') {
+            q.targetX = -x; q.targetY = -y;
+            q.mirrorLine = { type: 'origin' };
+            q.instruction = `Cerminkan titik A terhadap Titik Asal O(0, 0)!`;
+            q.hint = `Refleksi terhadap Titik Asal O(0,0): A(x, y) ➔ A'(-x, -y). Kedua tanda dibalik.`;
+          } else if (rType === 'y_eq_x') {
+            q.targetX = y; q.targetY = x;
+            q.mirrorLine = { type: 'y_eq_x' };
+            q.instruction = `Cerminkan titik A terhadap garis y = x!`;
+            q.hint = `Refleksi terhadap garis y = x: A(x, y) ➔ A'(y, x). Tukar posisi x dan y!`;
+          } else if (rType === 'y_eq_neg_x') {
+            q.targetX = -y; q.targetY = -x;
+            q.mirrorLine = { type: 'y_eq_neg_x' };
+            q.instruction = `Cerminkan titik A terhadap garis y = -x!`;
+            q.hint = `Refleksi terhadap garis y = -x: A(x, y) ➔ A'(-y, -x). Tukar posisi dan balik tandanya!`;
+          } else if (rType === 'x_eq_h') {
+            const h = this.randNonZero(-4, 4);
+            q.targetX = 2 * h - x; q.targetY = y;
+            q.mirrorLine = { type: 'x_eq_h', h };
+            q.instruction = `Cerminkan titik A terhadap garis x = ${h}!`;
+            q.hint = `Refleksi terhadap garis x = h: A'(2h - x, y). Hitung x' = 2(${h}) - (${x}) = ${2*h - x}, sedangkan y tetap.`;
+          } else if (rType === 'y_eq_h') {
+            const h = this.randNonZero(-4, 4);
+            q.targetX = x; q.targetY = 2 * h - y;
+            q.mirrorLine = { type: 'y_eq_h', h };
+            q.instruction = `Cerminkan titik A terhadap garis y = ${h}!`;
+            q.hint = `Refleksi terhadap garis y = h: A'(x, 2h - y). Nilai x tetap, hitung y' = 2(${h}) - (${y}) = ${2*h - y}.`;
+          }
+          q.transformMeta = { rType };
+        } 
+        else if (actualSector === 'rotasi') {
+          const angles = [90, -90, 180];
+          const angle = angles[this.randInt(0, angles.length - 1)];
+          q.transformMeta = { angle };
+
+          if (angle === 90) {
+            q.targetX = -y; q.targetY = x;
+            q.instruction = `Rotasikan titik A sebesar +90° (berlawanan arah jarum jam) dengan pusat O(0, 0)!`;
+            q.hint = `Rotasi +90° pusat O(0,0): A(x, y) ➔ A'(-y, x).`;
+          } else if (angle === -90) {
+            q.targetX = y; q.targetY = -x;
+            q.instruction = `Rotasikan titik A sebesar -90° (searah jarum jam) dengan pusat O(0, 0)!`;
+            q.hint = `Rotasi -90° pusat O(0,0): A(x, y) ➔ A'(y, -x).`;
+          } else {
+            q.targetX = -x; q.targetY = -y;
+            q.instruction = `Rotasikan titik A sebesar 180° dengan pusat O(0, 0)!`;
+            q.hint = `Rotasi 180° pusat O(0,0): A(x, y) ➔ A'(-x, -y).`;
+          }
+        } 
+        else if (actualSector === 'dilatasi') {
+          let k = 2;
+          let kLabel = '2';
+          if (tier === 1) {
+            const ks = [2, 3];
+            k = ks[this.randInt(0, ks.length - 1)];
+            kLabel = k.toString();
+          } else {
+            const pool = [
+              { val: 2, label: '2' },
+              { val: 3, label: '3' },
+              { val: -2, label: '-2' },
+              { val: 0.5, label: '1/2' },
+              { val: -0.5, label: '-1/2' }
+            ];
+            const chosen = pool[this.randInt(0, pool.length - 1)];
+            k = chosen.val;
+            kLabel = chosen.label;
+            // Jika pecahan 1/2, buat koordinat genap agar lebih ramah dihitung
+            if (Math.abs(k) === 0.5) {
+              x = this.randNonZero(-4, 4) * 2;
+              y = this.randNonZero(-4, 4) * 2;
+              q.origX = x;
+              q.origY = y;
+            }
+          }
+          q.targetX = x * k;
+          q.targetY = y * k;
+          q.transformMeta = { k, kLabel };
+          q.instruction = `Dilatasikan titik A dengan pusat O(0, 0) dan faktor skala k = ${kLabel}!`;
+          q.hint = `Rumus Dilatasi pusat O(0,0) skala k: A'(k · x, k · y). Kalikan masing-masing koordinat dengan ${kLabel}.`;
+        }
+
+        // Khusus Tier 3 (Komandan): 40% peluang soal dibalik (diketahui bayangan A', cari titik asal A)
+        if (tier === 3 && Math.random() < 0.4) {
+          q.isReverse = true;
+          // Tukar peran orig dan target
+          const tempX = q.origX;
+          const tempY = q.origY;
+          q.origX = q.targetX;
+          q.origY = q.targetY;
+          q.targetX = tempX;
+          q.targetY = tempY;
+
+          q.instruction = `[MISI BALIK KOMANDAN] Titik bayangan di atas adalah hasil ${q.instruction.replace('Tentukan koordinat bayangan jika ', '').replace('!', '')}. Tentukan koordinat titik awal A(x, y)!`;
+          q.hint = `Gunakan operasi kebalikan dari rumus utama untuk mencari titik awal A(x, y) sebelum ditransformasikan.`;
+        }
+
+        return q;
+      },
+
+      // Analisis Diagnostik Kesalahan Siswa
+      diagnoseMistake(q, ansX, ansY) {
+        const tx = q.targetX;
+        const ty = q.targetY;
+
+        if (Math.abs(ansX - ty) < 0.01 && Math.abs(ansY - tx) < 0.01) {
+          return 'Koordinat X dan Y kamu tertukar! Ingat format penulisan selalu (x, y).';
+        }
+        if (Math.abs(ansX + tx) < 0.01 && Math.abs(ansY + ty) < 0.01) {
+          return 'Angkanya sudah tepat, tetapi kedua tanda positif/negatifnya terbalik!';
+        }
+        if (Math.abs(ansX + tx) < 0.01 && Math.abs(ansY - ty) < 0.01) {
+          return 'Nilai Y sudah benar, tapi tanda positif/negatif pada X masih keliru.';
+        }
+        if (Math.abs(ansX - tx) < 0.01 && Math.abs(ansY + ty) < 0.01) {
+          return 'Nilai X sudah benar, tapi tanda positif/negatif pada Y masih keliru.';
+        }
+
+        if (q.sector === 'rotasi') {
+          if (q.transformMeta.angle === 90 && Math.abs(ansX - q.origY) < 0.01 && Math.abs(ansY + q.origX) < 0.01) {
+            return 'Arah putaran tertukar! Rotasi +90° berlawanan jarum jam rumusnya (-y, x), bukan (y, -x).';
+          }
+          if (q.transformMeta.angle === -90 && Math.abs(ansX + q.origY) < 0.01 && Math.abs(ansY - q.origX) < 0.01) {
+            return 'Arah putaran tertukar! Rotasi -90° searah jarum jam rumusnya (y, -x), bukan (-y, x).';
+          }
+        }
+
+        if (q.sector === 'refleksi' && (q.transformMeta.rType === 'x_eq_h' || q.transformMeta.rType === 'y_eq_h')) {
+          return `Ingat rumus pencerminan garis ${q.transformMeta.rType === 'x_eq_h' ? 'x = h yaitu (2h - x, y)' : 'y = h yaitu (x, 2h - y)'}. Cek kembali hitungan 2h-nya!`;
+        }
+
+        return 'Periksa kembali langkah perhitunganmu atau tekan tombol "Radar Rumus" untuk bantuan.';
+      }
+    };
+
+    /**
+     * MODUL 4: RENDERER BIDANG KARTESIUS & ANIMASI DRONE (HTML5 CANVAS)
+     */
+    const board = {
+      canvas: null,
+      ctx: null,
+      gridRange: 10, // -10 sampai +10 (otomatis meluas jika koordinat lebih besar)
+      dronePos: { x: 0, y: 0 },
+      trailPoints: [],
+      animFrame: null,
+
+      init() {
+        this.canvas = document.getElementById('cartesian-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        window.addEventListener('resize', () => this.resize());
+        this.resize();
+      },
+
+      resize() {
+        if (!this.canvas) return;
+        const rect = this.canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = rect.width * dpr;
+        this.canvas.height = rect.height * dpr;
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        this.draw();
+      },
+
+      setupQuestion(q) {
+        // Sesuaikan skala grid agar titik awal dan bayangan selalu terlihat jelas
+        const maxCoord = Math.max(
+          8,
+          Math.abs(q.origX) + 2,
+          Math.abs(q.origY) + 2,
+          Math.abs(q.targetX) + 2,
+          Math.abs(q.targetY) + 2
+        );
+        this.gridRange = Math.ceil(maxCoord);
+        this.dronePos = { x: q.origX, y: q.origY };
+        this.trailPoints = [{ x: q.origX, y: q.origY }];
+        this.draw();
+      },
+
+      toPixel(gx, gy) {
+        const w = this.canvas.clientWidth;
+        const h = this.canvas.clientHeight;
+        const cx = w / 2;
+        const cy = h / 2;
+        const stepX = (w / 2 - 28) / this.gridRange;
+        const stepY = (h / 2 - 24) / this.gridRange;
+        const step = Math.min(stepX, stepY);
+        return {
+          px: cx + gx * step,
+          py: cy - gy * step,
+          step
+        };
+      },
+
+      draw() {
+        if (!this.ctx) return;
+        const ctx = this.ctx;
+        const w = this.canvas.clientWidth;
+        const h = this.canvas.clientHeight;
+        const q = game.currentQ;
+
+        ctx.clearRect(0, 0, w, h);
+
+        // Latar gelap luar angkasa
+        ctx.fillStyle = '#040711';
+        ctx.fillRect(0, 0, w, h);
+
+        const origin = this.toPixel(0, 0);
+        const step = origin.step;
+
+        // 1. Garis Grid Kartesius
+        ctx.lineWidth = 1;
+        for (let i = -this.gridRange; i <= this.gridRange; i++) {
+          const p = this.toPixel(i, i);
+          ctx.strokeStyle = i === 0 ? 'rgba(148, 163, 184, 0.7)' : 'rgba(30, 41, 59, 0.75)';
+          ctx.lineWidth = i === 0 ? 2 : 1;
+
+          // Vertikal
+          ctx.beginPath();
+          ctx.moveTo(p.px, 12);
+          ctx.lineTo(p.px, h - 12);
+          ctx.stroke();
+
+          // Horizontal
+          ctx.beginPath();
+          ctx.moveTo(12, p.py);
+          ctx.lineTo(w - 12, p.py);
+          ctx.stroke();
+
+          // Angka sumbu
+          if (i !== 0 && (this.gridRange <= 12 || i % 2 === 0)) {
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px Orbitron, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(i.toString(), p.px, origin.py + 13);
+            ctx.textAlign = 'right';
+            ctx.fillText(i.toString(), origin.px - 6, p.py + 3);
+          }
+        }
+
+        // Label Sumbu X & Y
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'bold 11px Orbitron, sans-serif';
+        ctx.fillText('X', w - 16, origin.py - 8);
+        ctx.fillText('Y', origin.px + 14, 18);
+
+        if (!q) return;
+
+        // 2. Gambar Garis Cermin (Khusus Refleksi)
+        if (q.mirrorLine) {
+          ctx.save();
+          ctx.strokeStyle = '#c084fc';
+          ctx.lineWidth = 2.2;
+          ctx.setLineDash([6, 5]);
+          ctx.beginPath();
+
+          if (q.mirrorLine.type === 'xAxis') {
+            ctx.moveTo(12, origin.py);
+            ctx.lineTo(w - 12, origin.py);
+          } else if (q.mirrorLine.type === 'yAxis') {
+            ctx.moveTo(origin.px, 12);
+            ctx.lineTo(origin.px, h - 12);
+          } else if (q.mirrorLine.type === 'y_eq_x') {
+            const p1 = this.toPixel(-this.gridRange, -this.gridRange);
+            const p2 = this.toPixel(this.gridRange, this.gridRange);
+            ctx.moveTo(p1.px, p1.py);
+            ctx.lineTo(p2.px, p2.py);
+          } else if (q.mirrorLine.type === 'y_eq_neg_x') {
+            const p1 = this.toPixel(-this.gridRange, this.gridRange);
+            const p2 = this.toPixel(this.gridRange, -this.gridRange);
+            ctx.moveTo(p1.px, p1.py);
+            ctx.lineTo(p2.px, p2.py);
+          } else if (q.mirrorLine.type === 'x_eq_h') {
+            const ph = this.toPixel(q.mirrorLine.h, 0);
+            ctx.moveTo(ph.px, 12);
+            ctx.lineTo(ph.px, h - 12);
+          } else if (q.mirrorLine.type === 'y_eq_h') {
+            const ph = this.toPixel(0, q.mirrorLine.h);
+            ctx.moveTo(12, ph.py);
+            ctx.lineTo(w - 12, ph.py);
+          } else if (q.mirrorLine.type === 'origin') {
+            ctx.arc(origin.px, origin.py, 10, 0, Math.PI * 2);
+          }
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 3. Gambar Jejak Lintasan Laser Drone
+        if (this.trailPoints.length > 1) {
+          const trailObj = GARAGE_ITEMS.trails.find(t => t.id === state.equippedTrail) || GARAGE_ITEMS.trails[0];
+          ctx.save();
+          ctx.strokeStyle = trailObj.color;
+          ctx.shadowColor = trailObj.color;
+          ctx.shadowBlur = 10;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          this.trailPoints.forEach((pt, idx) => {
+            const pix = this.toPixel(pt.x, pt.y);
+            if (idx === 0) ctx.moveTo(pix.px, pix.py);
+            else ctx.lineTo(pix.px, pix.py);
+          });
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 4. Titik Awal (Penanda Lingkaran)
+        const startPix = this.toPixel(q.origX, q.origY);
+        ctx.fillStyle = 'rgba(34, 211, 238, 0.25)';
+        ctx.beginPath();
+        ctx.arc(startPix.px, startPix.py, 11, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#22d3ee';
+        ctx.beginPath();
+        ctx.arc(startPix.px, startPix.py, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Label Titik Awal
+        ctx.fillStyle = '#cffafe';
+        ctx.font = 'bold 11px Plus Jakarta Sans, sans-serif';
+        ctx.textAlign = 'left';
+        const startLabel = q.isReverse
+          ? `A'(${mathEngine.formatNum(q.origX)}, ${mathEngine.formatNum(q.origY)})`
+          : `A(${mathEngine.formatNum(q.origX)}, ${mathEngine.formatNum(q.origY)})`;
+        ctx.fillText(startLabel, startPix.px + 10, startPix.py - 8);
+
+        // 5. Gambar Ikon Pesawat Drone pada Posisi Aktif
+        const dPix = this.toPixel(this.dronePos.x, this.dronePos.y);
+        const skinObj = GARAGE_ITEMS.skins.find(s => s.id === state.equippedSkin) || GARAGE_ITEMS.skins[0];
+
+        ctx.save();
+        ctx.translate(dPix.px, dPix.py);
+        ctx.shadowColor = skinObj.color;
+        ctx.shadowBlur = 14;
+        ctx.fillStyle = skinObj.color;
+
+        // Bentuk Segitiga Pesawat Sci-Fi
+        ctx.beginPath();
+        ctx.moveTo(0, -11);
+        ctx.lineTo(9, 8);
+        ctx.lineTo(0, 4);
+        ctx.lineTo(-9, 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      },
+
+      // Animasi Lintasan Perpindahan Drone
+      animateMove(destX, destY, isSuccess, onComplete) {
+        if (this.animFrame) cancelAnimationFrame(this.animFrame);
+        const startX = game.currentQ.origX;
+        const startY = game.currentQ.origY;
+        const duration = isSuccess ? 750 : 600;
+        const startTime = performance.now();
+
+        const stepAnim = (now) => {
+          const elapsed = now - startTime;
+          const t = Math.min(elapsed / duration, 1);
+          // Easing smooth
+          const ease = 1 - Math.pow(1 - t, 3);
+
+          let curX = startX + (destX - startX) * ease;
+          let curY = startY + (destY - startY) * ease;
+
+          // Jika rotasi dan sukses, buat lintasan melengkung busur lingkaran!
+          if (isSuccess && game.currentQ.sector === 'rotasi') {
+            const r = Math.hypot(startX, startY);
+            const a1 = Math.atan2(startY, startX);
+            const a2 = Math.atan2(destY, destX);
+            let diff = a2 - a1;
+            if (game.currentQ.transformMeta.angle === 90 && diff < 0) diff += Math.PI * 2;
+            if (game.currentQ.transformMeta.angle === -90 && diff > 0) diff -= Math.PI * 2;
+            const curAngle = a1 + diff * ease;
+            curX = r * Math.cos(curAngle);
+            curY = r * Math.sin(curAngle);
+          }
+
+          this.dronePos = { x: curX, y: curY };
+          this.trailPoints.push({ x: curX, y: curY });
+          this.draw();
+
+          if (t < 1) {
+            this.animFrame = requestAnimationFrame(stepAnim);
+          } else {
+            if (!isSuccess) {
+              // Memantul kembali ke titik asal jika salah!
+              setTimeout(() => {
+                this.dronePos = { x: startX, y: startY };
+                this.trailPoints = [{ x: startX, y: startY }];
+                this.draw();
+                if (onComplete) onComplete();
+              }, 350);
+            } else {
+              if (onComplete) onComplete();
+            }
+          }
+        };
+
+        this.animFrame = requestAnimationFrame(stepAnim);
+      }
+    };
+
+    /**
+     * MODUL 5: CONTROLLER GAMEPLAY UTAMA
+     */
+    const game = {
+      sectorId: 'translasi',
+      tier: 1,
+      qIndex: 0,
+      totalQuestions: 5,
+      score: 0,
+      correctCount: 0,
+      streak: 0,
+      hintUsed: false,
+      currentQ: null,
+      locked: false,
+
+      startMission(sectorId, tier) {
+        sound.click();
+        this.sectorId = sectorId;
+        this.tier = tier;
+        this.qIndex = 0;
+        this.score = 0;
+        this.correctCount = 0;
+        this.streak = 0;
+
+        const secObj = SECTORS_DATA.find(s => s.id === sectorId);
+        const tierNames = { 1: 'Tier 1: Kadet', 2: 'Tier 2: Navigator', 3: 'Tier 3: Komandan' };
+
+        document.getElementById('game-sector-badge').textContent = `${secObj.code} • ${secObj.title.toUpperCase()}`;
+        document.getElementById('game-tier-badge').textContent = tierNames[tier];
+
+        app.showScreen('game');
+        board.resize();
+        this.loadQuestion();
+      },
+
+      loadQuestion() {
+        this.locked = false;
+        this.hintUsed = false;
+        this.currentQ = mathEngine.generateQuestion(this.sectorId, this.tier);
+
+        // Reset UI Soal
+        document.getElementById('game-q-num').textContent = this.qIndex + 1;
+        document.getElementById('game-score').textContent = this.score;
+
+        const pointLabel = this.currentQ.isReverse
+          ? `Bayangan A'(${mathEngine.formatNum(this.currentQ.origX)}, ${mathEngine.formatNum(this.currentQ.origY)})`
+          : `Titik Awal A(${mathEngine.formatNum(this.currentQ.origX)}, ${mathEngine.formatNum(this.currentQ.origY)})`;
+
+        document.getElementById('question-context').textContent = this.currentQ.isReverse
+          ? 'Koordinat bayangan terdeteksi pada titik:'
+          : 'Koordinat Drone saat ini terdeteksi pada titik:';
+        document.getElementById('question-point').textContent = pointLabel;
+        document.getElementById('question-instruction').textContent = this.currentQ.instruction;
+
+        document.getElementById('input-label-title').textContent = this.currentQ.isReverse
+          ? 'Masukkan Koordinat Titik Awal A(x, y)'
+          : "Masukkan Koordinat Bayangan A'(x', y')";
+
+        document.getElementById('input-x').value = '';
+        document.getElementById('input-y').value = '';
+        document.getElementById('input-x').focus();
+
+        document.getElementById('hint-box').classList.add('hidden');
+        document.getElementById('feedback-box').classList.add('hidden');
+        document.getElementById('btn-next-question').classList.add('hidden');
+        document.getElementById('btn-launch').disabled = false;
+
+        this.updateStreakUI();
+        board.setupQuestion(this.currentQ);
+      },
+
+      updateStreakUI() {
+        const cockpit = document.getElementById('cockpit-panel');
+        const badge = document.getElementById('hyperdrive-badge');
+        if (this.streak >= 3) {
+          cockpit.classList.add('hyperdrive-active');
+          badge.classList.remove('hidden');
+        } else {
+          cockpit.classList.remove('hyperdrive-active');
+          badge.classList.add('hidden');
+        }
+      },
+
+      useHint() {
+        if (this.locked) return;
+        sound.hint();
+        this.hintUsed = true;
+        document.getElementById('hint-text').textContent = this.currentQ.hint;
+        document.getElementById('hint-box').classList.remove('hidden');
+      },
+
+      submitAnswer(e) {
+        e.preventDefault();
+        if (this.locked) return;
+
+        const rawX = document.getElementById('input-x').value;
+        const rawY = document.getElementById('input-y').value;
+        const ansX = mathEngine.parseCoord(rawX);
+        const ansY = mathEngine.parseCoord(rawY);
+
+        if (isNaN(ansX) || isNaN(ansY)) {
+          this.showFeedback(false, 'Format Input Tidak Valid', 'Masukkan angka bulat, desimal (contoh: -2.5), atau pecahan (contoh: 1/2).', '');
+          return;
+        }
+
+        this.locked = true;
+        document.getElementById('btn-launch').disabled = true;
+        sound.launch();
+
+        const isCorrect = Math.abs(ansX - this.currentQ.targetX) < 0.02 && Math.abs(ansY - this.currentQ.targetY) < 0.02;
+
+        board.animateMove(ansX, ansY, isCorrect, () => {
+          if (isCorrect) {
+            sound.success();
+            this.correctCount++;
+            this.streak++;
+            const multiplier = this.streak >= 3 ? 2 : 1;
+            const basePts = this.hintUsed ? 70 : 100;
+            const earned = basePts * multiplier;
+            this.score += earned;
+
+            document.getElementById('game-score').textContent = this.score;
+            this.updateStreakUI();
+
+            const targetStr = `(${mathEngine.formatNum(this.currentQ.targetX)}, ${mathEngine.formatNum(this.currentQ.targetY)})`;
+            this.showFeedback(
+              true,
+              'TARGET TERKUNCI! TEPAT SEKALI',
+              `Drone berhasil mendarat akurat di koordinat ${targetStr}. ${this.streak >= 3 ? 'Mode Hyper-Drive 2x Poin aktif!' : ''}`,
+              `+${earned} PTS`
+            );
+            document.getElementById('btn-next-question').classList.remove('hidden');
+          } else {
+            sound.error();
+            this.streak = 0;
+            this.updateStreakUI();
+            const diag = mathEngine.diagnoseMistake(this.currentQ, ansX, ansY);
+            this.showFeedback(
+              false,
+              'MELENCENG DARI PORTAL!',
+              `AI Co-Pilot: ${diag} Silakan hitung ulang dan luncurkan kembali!`,
+              'COBA LAGI'
+            );
+            this.locked = false;
+            document.getElementById('btn-launch').disabled = false;
+          }
+        });
+      },
+
+      showFeedback(isSuccess, title, msg, ptsText) {
+        const box = document.getElementById('feedback-box');
+        box.classList.remove('hidden', 'bg-emerald-950/60', 'border-emerald-500/50', 'text-emerald-200', 'bg-rose-950/60', 'border-rose-500/50', 'text-rose-200');
+        
+        if (isSuccess) {
+          box.classList.add('bg-emerald-950/60', 'border-emerald-500/50', 'text-emerald-200');
+          document.getElementById('feedback-title').className = 'font-scifi font-bold uppercase tracking-wide text-emerald-400';
+          document.getElementById('feedback-points').className = 'font-scifi font-bold text-xs text-amber-300';
+        } else {
+          box.classList.add('bg-rose-950/60', 'border-rose-500/50', 'text-rose-200');
+          document.getElementById('feedback-title').className = 'font-scifi font-bold uppercase tracking-wide text-rose-400';
+          document.getElementById('feedback-points').className = 'font-scifi font-bold text-xs text-rose-400';
+        }
+
+        document.getElementById('feedback-title').textContent = title;
+        document.getElementById('feedback-message').textContent = msg;
+        document.getElementById('feedback-points').textContent = ptsText;
+      },
+
+      nextQuestion() {
+        sound.click();
+        this.qIndex++;
+        if (this.qIndex < this.totalQuestions) {
+          this.loadQuestion();
+        } else {
+          this.finishMission();
+        }
+      },
+
+      finishMission() {
+        const accuracy = Math.round((this.correctCount / this.totalQuestions) * 100);
+        const stars = accuracy === 100 ? 3 : (accuracy >= 60 ? 2 : (accuracy > 0 ? 1 : 0));
+        const rewardBits = Math.round(this.score / 5) + (stars * 25);
+
+        // Simpan Progres
+        state.starBits += rewardBits;
+        state.missionsCompleted++;
+        const key = `${this.sectorId}_${this.tier}`;
+        const prevStars = state.progress[key] || 0;
+        if (stars > prevStars) state.progress[key] = stars;
+        state.save();
+
+        // Tampilkan Sertifikat Digital
+        const secObj = SECTORS_DATA.find(s => s.id === this.sectorId);
+        const tierNames = { 1: 'Kadet', 2: 'Navigator', 3: 'Komandan' };
+
+        document.getElementById('cert-pilot-name').textContent = state.pilotName || 'Kadet Penjelajah';
+        document.getElementById('cert-sector').textContent = secObj.title;
+        document.getElementById('cert-tier').textContent = tierNames[this.tier];
+        document.getElementById('cert-accuracy').textContent = `${accuracy}%`;
+        document.getElementById('cert-score').textContent = this.score;
+        document.getElementById('cert-reward').textContent = `+${rewardBits}`;
+
+        const starsEl = document.getElementById('cert-stars');
+        starsEl.innerHTML = [1, 2, 3].map(i => 
+          `<span class="${i <= stars ? 'text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.7)]' : 'text-slate-700'}">★</span>`
+        ).join('');
+
+        sound.success();
+        app.showScreen('summary');
+      }
+    };
+
+    /**
+     * MODUL 6: PENGELOLA NAVIGASI LAYAR & UI
+     */
+    const app = {
+      init() {
+        state.load();
+        board.init();
+        if (state.pilotName) {
+          document.getElementById('pilot-name-input').value = state.pilotName;
+        }
+        this.updateHUD();
+        this.renderSectors();
+        this.renderGarage();
+      },
+
+      updateHUD() {
+        document.getElementById('hud-starbits').textContent = state.starBits;
+        document.getElementById('stat-missions').textContent = state.missionsCompleted;
+        const totalStars = Object.values(state.progress).reduce((a, b) => a + b, 0);
+        document.getElementById('stat-stars').textContent = `${totalStars} / 45 ★`;
+      },
+
+      startFromTitle() {
+        const inputName = document.getElementById('pilot-name-input').value.trim();
+        state.pilotName = inputName || 'Kadet Penjelajah';
+        state.save();
+        sound.click();
+        this.showScreen('sectors');
+      },
+
+      showScreen(name) {
+        ['title', 'sectors', 'game', 'summary', 'garage', 'duel-setup', 'duel', 'duel-result'].forEach(s => {
+          document.getElementById(`screen-${s}`).classList.add('hidden');
+        });
+        document.getElementById(`screen-${name}`).classList.remove('hidden');
+
+        if (name === 'sectors') {
+          document.getElementById('display-pilot-name').textContent = state.pilotName || 'Kadet';
+          this.renderSectors();
+        } else if (name === 'garage') {
+          this.renderGarage();
+        } else if (name === 'title') {
+          this.updateHUD();
+        }
+      },
+
+      abortMission() {
+        sound.click();
+        this.showScreen('sectors');
+      },
+
+      retryCurrentMission() {
+        game.startMission(game.sectorId, game.tier);
+      },
+
+      toggleFormulaModal(show) {
+        sound.click();
+        const modal = document.getElementById('formula-modal');
+        if (show) modal.classList.remove('hidden');
+        else modal.classList.add('hidden');
+      },
+
+      renderSectors() {
+        const grid = document.getElementById('sectors-grid');
+        grid.innerHTML = SECTORS_DATA.map(sec => {
+          const t1Stars = state.progress[`${sec.id}_1`] || 0;
+          const t2Stars = state.progress[`${sec.id}_2`] || 0;
+          const t3Stars = state.progress[`${sec.id}_3`] || 0;
+
+          const renderStars = (count) => [1, 2, 3].map(i => 
+            `<span class="${i <= count ? 'text-amber-400' : 'text-slate-700'}">★</span>`
+          ).join('');
+
+          return `
+            <div class="bg-slate-900/85 backdrop-blur-md rounded-2xl p-[1.8cqh] neon-border flex flex-col justify-between gap-[1.2cqh] hover:border-cyan-400/70 transition h-full min-h-0">
+              <div class="space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-scifi text-[1.35cqh] font-bold tracking-widest text-cyan-400">${sec.code}</span>
+                  <span class="text-[1.4cqh] text-slate-400 font-semibold">${t1Stars + t2Stars + t3Stars}/9 ★</span>
+                </div>
+                <h3 class="font-scifi text-[2.2cqh] font-bold text-white leading-tight">${sec.title}</h3>
+                <div class="text-[1.45cqh] font-semibold text-purple-300 leading-snug">${sec.subtitle}</div>
+                <p class="text-[1.4cqh] text-slate-400 leading-snug pt-0.5 line-clamp-3">${sec.desc}</p>
+              </div>
+
+              <!-- 3 Tombol Tingkat Kesukaran -->
+              <div class="space-y-[0.8cqh] pt-[1cqh] border-t border-slate-800/80">
+                <button onclick="game.startMission('${sec.id}', 1)" class="btn-scifi w-full py-[1cqh] px-2.5 rounded-xl bg-slate-800/90 hover:bg-cyan-500/20 border border-slate-700 hover:border-cyan-400/60 flex items-center justify-between text-[1.45cqh]">
+                  <span class="font-semibold text-slate-200">Tier 1: Kadet</span>
+                  <span class="tracking-widest">${renderStars(t1Stars)}</span>
+                </button>
+                <button onclick="game.startMission('${sec.id}', 2)" class="btn-scifi w-full py-[1cqh] px-2.5 rounded-xl bg-slate-800/90 hover:bg-purple-500/20 border border-slate-700 hover:border-purple-400/60 flex items-center justify-between text-[1.45cqh]">
+                  <span class="font-semibold text-slate-200">Tier 2: Navigator</span>
+                  <span class="tracking-widest">${renderStars(t2Stars)}</span>
+                </button>
+                <button onclick="game.startMission('${sec.id}', 3)" class="btn-scifi w-full py-[1cqh] px-2.5 rounded-xl bg-slate-800/90 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-400/60 flex items-center justify-between text-[1.45cqh]">
+                  <span class="font-semibold text-slate-200">Tier 3: Komandan</span>
+                  <span class="tracking-widest">${renderStars(t3Stars)}</span>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      },
+
+      renderGarage() {
+        const skinsContainer = document.getElementById('garage-skins-list');
+        skinsContainer.innerHTML = GARAGE_ITEMS.skins.map(item => {
+          const owned = state.unlockedSkins.includes(item.id);
+          const equipped = state.equippedSkin === item.id;
+          return `
+            <div class="p-3.5 rounded-xl bg-slate-950/90 border ${equipped ? 'border-cyan-400' : 'border-slate-800'} flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-900 border border-slate-700">
+                  <span style="color: ${item.color}" class="text-lg">▲</span>
+                </div>
+                <div>
+                  <div class="text-xs sm:text-sm font-bold text-white">${item.name}</div>
+                  <div class="text-[11px] text-amber-400">${owned ? 'Sudah Dimiliki' : `✦ ${item.cost} Star-Bits`}</div>
+                </div>
+              </div>
+              ${equipped 
+                ? `<span class="px-3 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-scifi text-[11px] font-bold">DIPAKAI</span>`
+                : owned
+                  ? `<button onclick="app.equipItem('skin', '${item.id}')" class="btn-scifi px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold">Pakai</button>`
+                  : `<button onclick="app.buyItem('skin', '${item.id}', ${item.cost})" ${state.starBits < item.cost ? 'disabled' : ''} class="btn-scifi px-3 py-1.5 rounded-lg ${state.starBits >= item.cost ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-500 cursor-not-allowed'} text-xs">Beli</button>`
+              }
+            </div>
+          `;
+        }).join('');
+
+        const trailsContainer = document.getElementById('garage-trails-list');
+        trailsContainer.innerHTML = GARAGE_ITEMS.trails.map(item => {
+          const owned = state.unlockedTrails.includes(item.id);
+          const equipped = state.equippedTrail === item.id;
+          return `
+            <div class="p-3.5 rounded-xl bg-slate-950/90 border ${equipped ? 'border-purple-400' : 'border-slate-800'} flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-900 border border-slate-700">
+                  <span style="background-color: ${item.color}; box-shadow: 0 0 8px ${item.color}" class="w-4 h-1.5 rounded-full inline-block"></span>
+                </div>
+                <div>
+                  <div class="text-xs sm:text-sm font-bold text-white">${item.name}</div>
+                  <div class="text-[11px] text-amber-400">${owned ? 'Sudah Dimiliki' : `✦ ${item.cost} Star-Bits`}</div>
+                </div>
+              </div>
+              ${equipped 
+                ? `<span class="px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300 font-scifi text-[11px] font-bold">DIPAKAI</span>`
+                : owned
+                  ? `<button onclick="app.equipItem('trail', '${item.id}')" class="btn-scifi px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold">Pakai</button>`
+                  : `<button onclick="app.buyItem('trail', '${item.id}', ${item.cost})" ${state.starBits < item.cost ? 'disabled' : ''} class="btn-scifi px-3 py-1.5 rounded-lg ${state.starBits >= item.cost ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-500 cursor-not-allowed'} text-xs">Beli</button>`
+              }
+            </div>
+          `;
+        }).join('');
+      },
+
+      buyItem(type, id, cost) {
+        if (state.starBits < cost) return;
+        state.starBits -= cost;
+        if (type === 'skin') {
+          state.unlockedSkins.push(id);
+          state.equippedSkin = id;
+        } else {
+          state.unlockedTrails.push(id);
+          state.equippedTrail = id;
+        }
+        sound.success();
+        state.save();
+        this.renderGarage();
+      },
+
+      equipItem(type, id) {
+        sound.click();
+        if (type === 'skin') state.equippedSkin = id;
+        else state.equippedTrail = id;
+        state.save();
+        this.renderGarage();
+      }
+    };
+
+    /**
+     * MODUL 7: MODE DUEL 2 PEMAIN (1 LAYAR, SPLIT-SCREEN)
+     * Soal identik untuk kedua pemain, progres independen, kontrol keyboard terpisah + keypad sentuh.
+     */
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    const duel = {
+      sector: 'translasi', tier: 1, total: 5,
+      names: ['Pemain 1', 'Pemain 2'], cols: ['#22d3ee', '#c084fc'],
+      qs: [], P: [], first: {}, t0: 0, gen: 0,
+
+      openSetup() {
+        sound.click();
+        this.gen++;
+        const n0 = document.getElementById('duel-n0');
+        if (!n0.value && state.pilotName) n0.value = state.pilotName;
+        app.showScreen('duel-setup');
+        this.renderSetup();
+      },
+      pick(k, v) { sound.click(); this[k] = v; this.renderSetup(); },
+      renderSetup() {
+        const on = 'bg-cyan-500/25 border-cyan-400 text-cyan-200', off = 'bg-slate-800 border-slate-700 text-slate-300';
+        document.getElementById('duel-sectors').innerHTML = SECTORS_DATA.map(s =>
+          `<button onclick="duel.pick('sector','${s.id}')" class="btn-scifi rounded-xl px-2 py-[1.2cqh] text-[1.5cqh] font-semibold border ${this.sector === s.id ? on : off}">${s.title}</button>`).join('');
+        document.getElementById('duel-tiers').innerHTML = ['Kadet', 'Navigator', 'Komandan'].map((t, i) =>
+          `<button onclick="duel.pick('tier',${i + 1})" class="btn-scifi rounded-xl px-2 py-[1.2cqh] text-[1.5cqh] font-semibold border ${this.tier === i + 1 ? on : off}">Tier ${i + 1}: ${t}</button>`).join('');
+      },
+
+      panel(i) {
+        const c = i ? 'purple' : 'cyan', col = this.cols[i];
+        const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '/', '.', 'back', 'next'];
+        const label = k => k === 'back' ? '⌫' : k === 'next' ? '⇥' : k;
+        const kb = keys.map(k => `<button onclick="duel.press(duel.P[${i}],'${k}')" class="btn-scifi py-[0.9cqh] rounded-lg bg-slate-800 border border-slate-700 font-scifi font-bold text-[1.7cqh] text-slate-100">${label(k)}</button>`).join('');
+        const box = (f, t) => `<button onclick="duel.setF(${i},'${f}')" id="d${i}-b${f}" class="text-left px-2.5 py-[0.5cqh] rounded-lg bg-slate-950 border border-slate-700"><span class="block text-[1.1cqh] font-scifi text-${c}-400">${t}</span><span id="d${i}-${f}" class="font-scifi text-[2cqh] font-bold text-white">—</span></button>`;
+        return `
+        <div class="relative flex flex-col gap-[0.8cqh] bg-slate-900/85 rounded-2xl p-[1.1cqh] min-h-0 h-full" style="border:1px solid ${col}99;box-shadow:0 0 16px ${col}33">
+          <div class="flex items-center justify-between gap-2 text-[1.5cqh] shrink-0">
+            <span class="font-scifi font-bold text-${c}-300 truncate max-w-[38%]">${i ? '🟣' : '🔵'} ${esc(this.names[i])}</span>
+            <span class="text-slate-300">Soal <b id="d${i}-qn" class="font-scifi text-${c}-300">1</b>/${this.total}</span>
+            <span id="d${i}-st" class="hidden px-2 rounded-full bg-gradient-to-r from-amber-500 to-pink-600 text-slate-950 font-scifi font-extrabold text-[1.2cqh]">⚡ 2X</span>
+            <span class="text-amber-300">Skor <b id="d${i}-sc" class="font-scifi">0</b></span>
+          </div>
+          <div class="relative flex-1 min-h-0 rounded-xl overflow-hidden border border-slate-800"><canvas id="d${i}-cv" class="w-full h-full block"></canvas></div>
+          <div class="rounded-xl bg-slate-950/90 border border-slate-800 px-[1.1cqh] py-[0.7cqh] shrink-0">
+            <div id="d${i}-pt" class="font-scifi text-[1.9cqh] font-bold text-${c}-300"></div>
+            <div id="d${i}-in" class="text-[1.35cqh] text-white font-semibold leading-snug"></div>
+            <div id="d${i}-ms" class="text-[1.3cqh] text-slate-400 leading-snug mt-0.5 min-h-[3.4cqh]"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-[0.8cqh] shrink-0">${box('x', "X'")}${box('y', "Y'")}</div>
+          <div class="grid grid-cols-6 gap-[0.5cqh] shrink-0">${kb}
+            <button onclick="duel.press(duel.P[${i}],'go')" class="btn-scifi col-span-3 py-[0.9cqh] rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-scifi font-bold text-[1.5cqh]">🚀 LUNCURKAN</button>
+          </div>
+          <div id="d${i}-ov" class="hidden absolute inset-0 z-10 rounded-2xl bg-slate-950/80 backdrop-blur-sm flex-col items-center justify-center text-center gap-2">
+            <div class="text-[5cqh]">✅</div>
+            <div class="font-scifi text-[2.2cqh] font-bold text-${c}-300">SELESAI!</div>
+            <div class="text-[1.6cqh] text-slate-300">Menunggu lawan menyelesaikan misi…</div>
+          </div>
+        </div>`;
+      },
+
+      start() {
+        sound.click();
+        this.names = [0, 1].map(i => document.getElementById('duel-n' + i).value.trim() || 'Pemain ' + (i + 1));
+        this.gen++;
+        this.qs = Array.from({ length: this.total }, () => mathEngine.generateQuestion(this.sector, this.tier));
+        this.first = {};
+        this.P = [0, 1].map(i => ({ i, col: this.cols[i], qi: 0, score: 0, firstTry: 0, wrong: 0, streak: 0, tries: 0, x: '', y: '', f: 'x', locked: false, done: false, time: 0, drone: { x: 0, y: 0 }, trail: [], raf: 0 }));
+        document.getElementById('duel-arena').innerHTML = this.P.map(p => this.panel(p.i)).join('');
+        app.showScreen('duel');
+        this.P.forEach(p => { this.setupCanvas(p); this.loadQ(p); });
+        this.t0 = performance.now();
+      },
+
+      setupCanvas(p) {
+        p.cv = document.getElementById(`d${p.i}-cv`);
+        p.ctx = p.cv.getContext('2d');
+        const r = p.cv.parentElement.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+        p.cv.width = r.width * d; p.cv.height = r.height * d;
+        p.ctx.setTransform(d, 0, 0, d, 0, 0);
+      },
+      resizeAll() {
+        if (!this.P.length || document.getElementById('screen-duel').classList.contains('hidden')) return;
+        this.P.forEach(p => { this.setupCanvas(p); this.draw(p); });
+      },
+
+      $(p, id) { return document.getElementById(`d${p.i}-${id}`); },
+
+      loadQ(p) {
+        const q = this.qs[p.qi], rev = q.isReverse;
+        p.tries = 0; p.x = p.y = ''; p.f = 'x'; p.locked = false;
+        p.drone = { x: q.origX, y: q.origY };
+        p.trail = [{ x: q.origX, y: q.origY }];
+        this.$(p, 'qn').textContent = p.qi + 1;
+        this.$(p, 'pt').textContent = `${rev ? "Bayangan A'" : 'Titik Awal A'}(${mathEngine.formatNum(q.origX)}, ${mathEngine.formatNum(q.origY)})`;
+        this.$(p, 'in').textContent = q.instruction;
+        this.msg(p, rev ? 'Jawab: titik awal A(x, y)' : "Jawab: bayangan A'(x', y')", null);
+        this.refresh(p);
+        this.draw(p);
+      },
+
+      msg(p, text, ok) {
+        const el = this.$(p, 'ms');
+        el.textContent = text;
+        el.className = 'text-[1.3cqh] leading-snug mt-0.5 min-h-[3.4cqh] ' + (ok === null ? 'text-slate-400' : ok ? 'text-emerald-300' : 'text-rose-300');
+      },
+
+      refresh(p) {
+        ['x', 'y'].forEach(f => {
+          this.$(p, f).textContent = p[f] || '—';
+          this.$(p, 'b' + f).style.borderColor = p.f === f ? p.col : '';
+        });
+      },
+      setF(i, f) { this.P[i].f = f; this.refresh(this.P[i]); },
+
+      press(p, k) {
+        if (!p || p.locked || p.done) return;
+        if (k === 'go') return this.submit(p);
+        if (k === 'back') p[p.f] = p[p.f].slice(0, -1);
+        else if (k === 'next') p.f = p.f === 'x' ? 'y' : 'x';
+        else if (p[p.f].length < 7) p[p.f] += k;
+        sound.click();
+        this.refresh(p);
+      },
+
+      submit(p) {
+        const ax = mathEngine.parseCoord(p.x), ay = mathEngine.parseCoord(p.y);
+        if (isNaN(ax) || isNaN(ay)) { this.msg(p, "Isi X' dan Y' dengan angka (bulat, desimal, atau pecahan).", false); return; }
+        const q = this.qs[p.qi], g = this.gen;
+        const ok = Math.abs(ax - q.targetX) < 0.02 && Math.abs(ay - q.targetY) < 0.02;
+        p.locked = true;
+        sound.launch();
+        this.fly(p, ax, ay, ok, () => {
+          if (g !== this.gen) return;
+          if (ok) {
+            sound.success();
+            if (p.tries === 0) p.firstTry++;
+            p.streak++;
+            let pts = Math.max(25, 100 - 25 * p.tries) * (p.streak >= 3 ? 2 : 1);
+            let bonus = 0;
+            if (this.first[p.qi] === undefined) { this.first[p.qi] = p.i; bonus = 50; }
+            p.score += pts + bonus;
+            this.$(p, 'sc').textContent = p.score;
+            this.$(p, 'st').classList.toggle('hidden', p.streak < 3);
+            this.msg(p, `TARGET TERKUNCI! +${pts + bonus} poin${bonus ? ' (⚡ tercepat +50)' : ''}`, true);
+            setTimeout(() => { if (g === this.gen) this.advance(p); }, 1000);
+          } else {
+            sound.error();
+            p.tries++; p.wrong++; p.streak = 0;
+            this.$(p, 'st').classList.add('hidden');
+            this.msg(p, mathEngine.diagnoseMistake(q, ax, ay), false);
+            p.x = p.y = ''; p.f = 'x'; p.locked = false;
+            this.refresh(p);
+          }
+        });
+      },
+
+      fly(p, dx, dy, ok, cb) {
+        const q = this.qs[p.qi], sx = q.origX, sy = q.origY, t0 = performance.now(), dur = ok ? 700 : 550, g = this.gen;
+        cancelAnimationFrame(p.raf);
+        const step = now => {
+          if (g !== this.gen) return;
+          const t = Math.min((now - t0) / dur, 1), e = 1 - Math.pow(1 - t, 3);
+          p.drone = { x: sx + (dx - sx) * e, y: sy + (dy - sy) * e };
+          p.trail.push({ ...p.drone });
+          this.draw(p);
+          if (t < 1) p.raf = requestAnimationFrame(step);
+          else if (ok) cb();
+          else setTimeout(() => { p.drone = { x: sx, y: sy }; p.trail = [{ x: sx, y: sy }]; this.draw(p); cb(); }, 300);
+        };
+        p.raf = requestAnimationFrame(step);
+      },
+
+      advance(p) {
+        p.qi++;
+        if (p.qi >= this.total) {
+          p.done = true; p.time = performance.now() - this.t0;
+          p.qi = this.total - 1;
+          const ov = this.$(p, 'ov'); ov.classList.remove('hidden'); ov.classList.add('flex');
+          if (this.P.every(x => x.done)) setTimeout(() => this.finish(), 900);
+        } else this.loadQ(p);
+      },
+
+      finish() {
+        const [a, b] = this.P;
+        const w = a.score !== b.score ? (a.score > b.score ? a : b) : (a.time !== b.time ? (a.time < b.time ? a : b) : null);
+        const card = p => `
+          <div class="rounded-2xl p-[2cqh] bg-slate-900/90 text-center space-y-[0.8cqh] ${w === p ? 'hyperdrive-active' : ''}" style="border:1px solid ${p.col}88">
+            <div class="font-scifi text-[2cqh] font-bold" style="color:${p.col}">${w === p ? '👑 ' : ''}${esc(this.names[p.i])}</div>
+            <div class="font-scifi text-[5.5cqh] font-black text-white leading-none">${p.score}</div>
+            <div class="text-[1.5cqh] text-slate-400">Benar di percobaan pertama: <b class="text-emerald-300">${p.firstTry}/${this.total}</b> • Salah: <b class="text-rose-300">${p.wrong}</b></div>
+            <div class="text-[1.5cqh] text-slate-400">Waktu selesai: <b class="text-cyan-300">${(p.time / 1000).toFixed(1)} dtk</b></div>
+          </div>`;
+        document.getElementById('screen-duel-result').innerHTML = `
+          <div class="text-center space-y-1">
+            <span class="font-scifi text-[1.4cqh] text-cyan-400 tracking-widest">HASIL DUEL • ${esc(SECTORS_DATA.find(s => s.id === this.sector).title.toUpperCase())} • TIER ${this.tier}</span>
+            <h2 class="font-scifi text-[4cqh] font-black text-white leading-tight">${w ? `${esc(this.names[w.i])} MENANG!` : 'SERI!'}</h2>
+            ${w && a.score === b.score ? '<p class="text-[1.4cqh] text-slate-400">Skor sama, pemenang ditentukan dari waktu penyelesaian tercepat.</p>' : ''}
+          </div>
+          <div class="grid grid-cols-2 gap-[1.5cqw]">${card(a)}${card(b)}</div>
+          <div class="grid grid-cols-3 gap-3">
+            <button onclick="duel.start()" class="btn-scifi py-[1.4cqh] rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-scifi font-bold text-[1.6cqh]">↻ DUEL LAGI</button>
+            <button onclick="duel.openSetup()" class="btn-scifi py-[1.4cqh] rounded-xl bg-slate-800 border border-slate-600 text-white font-semibold text-[1.6cqh]">⚙ Ubah Pengaturan</button>
+            <button onclick="app.showScreen('title')" class="btn-scifi py-[1.4cqh] rounded-xl bg-slate-800 border border-slate-600 text-white font-semibold text-[1.6cqh]">Menu Utama</button>
+          </div>`;
+        sound.success();
+        app.showScreen('duel-result');
+      },
+
+      draw(p) {
+        const q = this.qs[p.qi];
+        if (!q || !p.ctx) return;
+        const x = p.ctx, w = p.cv.clientWidth, h = p.cv.clientHeight, f = mathEngine.formatNum;
+        const R = Math.ceil(Math.max(8, ...[q.origX, q.origY, q.targetX, q.targetY].map(v => Math.abs(v) + 2)));
+        const s = Math.min((w / 2 - 14) / R, (h / 2 - 14) / R), cx = w / 2, cy = h / 2;
+        const P = (a, b) => [cx + a * s, cy - b * s];
+        x.fillStyle = '#040711'; x.fillRect(0, 0, w, h);
+        x.font = '9px Orbitron, sans-serif';
+        for (let i = -R; i <= R; i++) {
+          x.strokeStyle = i ? 'rgba(30,41,59,.8)' : 'rgba(148,163,184,.7)'; x.lineWidth = i ? 1 : 2;
+          x.beginPath(); x.moveTo(cx + i * s, cy - R * s); x.lineTo(cx + i * s, cy + R * s); x.stroke();
+          x.beginPath(); x.moveTo(cx - R * s, cy - i * s); x.lineTo(cx + R * s, cy - i * s); x.stroke();
+          if (i && (R <= 12 || i % 2 === 0)) {
+            x.fillStyle = '#64748b';
+            x.textAlign = 'center'; x.fillText(i, cx + i * s, cy + 11);
+            x.textAlign = 'right'; x.fillText(i, cx - 4, cy - i * s + 3);
+          }
+        }
+        const m = q.mirrorLine;
+        if (m) {
+          x.save(); x.strokeStyle = '#c084fc'; x.lineWidth = 2; x.setLineDash([6, 5]); x.beginPath();
+          const L = { xAxis: [[-R, 0], [R, 0]], yAxis: [[0, -R], [0, R]], y_eq_x: [[-R, -R], [R, R]], y_eq_neg_x: [[-R, R], [R, -R]], x_eq_h: [[m.h, -R], [m.h, R]], y_eq_h: [[-R, m.h], [R, m.h]] }[m.type];
+          if (L) { x.moveTo(...P(...L[0])); x.lineTo(...P(...L[1])); }
+          else { const o = P(0, 0); x.arc(o[0], o[1], 10, 0, 7); }
+          x.stroke(); x.restore();
+        }
+        if (p.trail.length > 1) {
+          x.save(); x.strokeStyle = p.col; x.shadowColor = p.col; x.shadowBlur = 8; x.lineWidth = 3; x.beginPath();
+          p.trail.forEach((t, k) => { const a = P(t.x, t.y); k ? x.lineTo(a[0], a[1]) : x.moveTo(a[0], a[1]); });
+          x.stroke(); x.restore();
+        }
+        const sp = P(q.origX, q.origY);
+        x.fillStyle = 'rgba(34,211,238,.25)'; x.beginPath(); x.arc(sp[0], sp[1], 10, 0, 7); x.fill();
+        x.fillStyle = '#22d3ee'; x.beginPath(); x.arc(sp[0], sp[1], 4, 0, 7); x.fill();
+        x.fillStyle = '#cffafe'; x.font = 'bold 11px Plus Jakarta Sans, sans-serif'; x.textAlign = 'left';
+        x.fillText(`A${q.isReverse ? "'" : ''}(${f(q.origX)}, ${f(q.origY)})`, sp[0] + 9, sp[1] - 8);
+        const d = P(p.drone.x, p.drone.y);
+        x.save(); x.translate(d[0], d[1]); x.shadowColor = p.col; x.shadowBlur = 12; x.fillStyle = p.col;
+        x.beginPath(); x.moveTo(0, -11); x.lineTo(9, 8); x.lineTo(0, 4); x.lineTo(-9, 8); x.closePath(); x.fill(); x.restore();
+      }
+    };
+
+    // Kontrol keyboard terpisah: P1 = baris angka, P2 = Numpad
+    document.addEventListener('keydown', e => {
+      if (document.getElementById('screen-duel').classList.contains('hidden')) return;
+      const c = e.code; let p = null, k = null;
+      if (/^Digit\d$/.test(c)) { p = 0; k = c.slice(5); }
+      else if (c === 'Minus') { p = 0; k = '-'; }
+      else if (c === 'Slash') { p = 0; k = '/'; }
+      else if (c === 'Period') { p = 0; k = '.'; }
+      else if (c === 'Backspace') { p = 0; k = 'back'; }
+      else if (c === 'Space') { p = 0; k = 'next'; }
+      else if (c === 'Enter') { p = 0; k = 'go'; }
+      else if (/^Numpad\d$/.test(c)) { p = 1; k = c.slice(6); }
+      else if (c === 'NumpadSubtract') { p = 1; k = '-'; }
+      else if (c === 'NumpadDivide') { p = 1; k = '/'; }
+      else if (c === 'NumpadDecimal') { p = 1; k = '.'; }
+      else if (c === 'NumpadMultiply') { p = 1; k = 'back'; }
+      else if (c === 'NumpadAdd') { p = 1; k = 'next'; }
+      else if (c === 'NumpadEnter') { p = 1; k = 'go'; }
+      if (p === null) return;
+      e.preventDefault();
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      if (e.repeat && k === 'go') return;
+      duel.press(duel.P[p], k);
+    });
+    window.addEventListener('resize', () => duel.resizeAll());
+
+    // Jalankan Aplikasi saat Halaman Dimuat
+    window.addEventListener('DOMContentLoaded', () => {
+      app.init();
+    });
+  </script>
+</body>
+</html>
