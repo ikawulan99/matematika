@@ -1,0 +1,2396 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Geo-Shift: Misi Penjelajah Koordinat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-space: #060b19;
+      --panel-bg: rgba(13, 22, 45, 0.92);
+      --neon-cyan: #22d3ee;
+      --neon-emerald: #10b981;
+      --neon-amber: #f59e0b;
+      --neon-magenta: #e879f9;
+      --neon-rose: #fb7185;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 50% 20%, #0f1c3f 0%, #03060f 100%);
+      font-family: 'Inter', sans-serif;
+      color: #f8fafc;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Kontainer Utama Rasio 9:16 Mobile-First */
+    #app-shell {
+      position: relative;
+      width: 100vw;
+      height: 100dvh;
+      max-width: 450px;
+      background: linear-gradient(180deg, #070d1f 0%, #0b1530 50%, #070c1c 100%);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 0 50px rgba(34, 211, 238, 0.18), 0 0 0 1px rgba(56, 189, 248, 0.25);
+    }
+
+    @media (min-width: 500px) {
+      #app-shell {
+        height: 94dvh;
+        max-height: 860px;
+        aspect-ratio: 9 / 16;
+        border-radius: 28px;
+        border: 2px solid rgba(56, 189, 248, 0.35);
+      }
+    }
+
+    .font-orbitron {
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Animasi Hyper-Drive Mode */
+    @keyframes hyperPulse {
+      0%, 100% {
+        box-shadow: inset 0 0 24px rgba(232, 121, 249, 0.45), 0 0 30px rgba(34, 211, 238, 0.35);
+      }
+      50% {
+        box-shadow: inset 0 0 42px rgba(34, 211, 238, 0.65), 0 0 45px rgba(232, 121, 249, 0.55);
+      }
+    }
+
+    .hyper-drive-active {
+      animation: hyperPulse 1.4s infinite ease-in-out;
+      border-color: #e879f9 !important;
+    }
+
+    /* Animasi Tombol & Efek Mengambang */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+
+    .animate-float {
+      animation: floatSlow 3.2s ease-in-out infinite;
+    }
+
+    /* Custom Scrollbar halus untuk modal & peta sektor */
+    .custom-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.45);
+      border-radius: 99px;
+    }
+
+    /* Tombol Keypad Kokpit */
+    .keypad-btn {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.92) 0%, rgba(15, 23, 42, 0.98) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      box-shadow: 0 3px 0 rgba(2, 6, 23, 0.9);
+      transition: transform 0.06s ease, background 0.12s ease, border-color 0.12s ease;
+    }
+    .keypad-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 rgba(2, 6, 23, 0.9);
+      border-color: #22d3ee;
+      background: rgba(34, 211, 238, 0.22);
+    }
+
+    /* Input Slot Aktif */
+    .coord-slot {
+      transition: all 0.15s ease;
+    }
+    .coord-slot.active {
+      border-color: #22d3ee;
+      background: rgba(34, 211, 238, 0.16);
+      box-shadow: 0 0 14px rgba(34, 211, 238, 0.35);
+    }
+
+    /* Latar Bintang Halus */
+    .bg-grid-pattern {
+      background-image: 
+        linear-gradient(to right, rgba(34, 211, 238, 0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(34, 211, 238, 0.06) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-shell" class="bg-grid-pattern">
+  <!-- Canvas Partikel Latar Belakang untuk Layar Menu -->
+  <canvas id="bg-stars-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-0"></canvas>
+
+  <!-- ==================== 1. LAYAR PEMBUKA (TITLE SCREEN) ==================== -->
+  <section id="screen-title" class="relative z-10 flex flex-col justify-between h-full p-5 overflow-y-auto custom-scroll">
+    <!-- Header Status Atas -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2 bg-slate-900/80 border border-cyan-500/30 px-3 py-1.5 rounded-full">
+        <span class="text-amber-400 text-sm">✦</span>
+        <span id="title-starbits" class="font-mono-code text-xs font-bold text-amber-300">0</span>
+        <span class="text-[10px] text-slate-400 uppercase tracking-wider">Star-Bits</span>
+      </div>
+      <button onclick="toggleAudio()" id="btn-audio-title" class="p-2.5 rounded-full bg-slate-900/80 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-950/60 active:scale-95 transition" title="Suara Efek">
+        🔊
+      </button>
+    </div>
+
+    <!-- Logo & Ilustrasi Drone -->
+    <div class="flex flex-col items-center text-center my-auto py-3">
+      <div class="relative w-28 h-28 mb-3 flex items-center justify-center animate-float">
+        <div class="absolute inset-0 rounded-full bg-cyan-500/20 blur-xl"></div>
+        <div class="absolute inset-2 rounded-full border border-dashed border-cyan-400/50 animate-spin" style="animation-duration: 14s;"></div>
+        <!-- SVG Drone Utama -->
+        <svg id="title-drone-svg" viewBox="0 0 120 120" class="w-24 h-24 drop-shadow-[0_0_15px_rgba(34,211,238,0.7)]">
+          <defs>
+            <linearGradient id="hullGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#38bdf8" />
+              <stop offset="100%" stop-color="#0284c7" />
+            </linearGradient>
+          </defs>
+          <!-- Sayap Kiri & Kanan -->
+          <polygon points="60,28 16,74 36,78 60,52" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5"/>
+          <polygon points="60,28 104,74 84,78 60,52" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5"/>
+          <!-- Badan Utama -->
+          <polygon points="60,14 78,66 60,84 42,66" fill="url(#hullGrad)" stroke="#e0f2fe" stroke-width="2"/>
+          <!-- Kokpit -->
+          <ellipse cx="60" cy="48" rx="8" ry="14" fill="#060b19" stroke="#22d3ee" stroke-width="2"/>
+          <ellipse cx="58" cy="44" rx="2.5" ry="5" fill="#bae6fd" opacity="0.8"/>
+          <!-- Thruster -->
+          <polygon points="50,84 70,84 60,104" fill="#f59e0b" opacity="0.9"/>
+        </svg>
+      </div>
+
+      <span class="px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 font-orbitron text-[10px] tracking-widest uppercase mb-2">
+        Matematika SMP • Fase D
+      </span>
+      <h1 class="font-orbitron text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-fuchsia-300 leading-tight">
+        GEO-SHIFT
+      </h1>
+      <p class="font-orbitron text-xs tracking-[0.18em] text-cyan-400 uppercase mt-1">
+        Misi Penjelajah Koordinat
+      </p>
+      <p class="text-xs text-slate-300/90 mt-2.5 max-w-[300px] leading-relaxed">
+        Kendalikan drone antariksa melintasi bidang Kartesius! Kuasai Translasi, Refleksi, Rotasi, dan Dilatasi untuk memulihkan portal dimensi.
+      </p>
+
+      <!-- Input Nama Kadet -->
+      <div class="w-full max-w-[310px] mt-4 bg-slate-900/85 border border-slate-700/80 rounded-2xl p-3 text-left">
+        <label for="pilot-name-input" class="block text-[10px] font-semibold uppercase tracking-wider text-cyan-300 mb-1">
+          Identitas Pilot (Untuk Sertifikat Misi)
+        </label>
+        <input id="pilot-name-input" type="text" maxlength="22" placeholder="Ketik nama kamu di sini..."
+          class="w-full bg-slate-950/90 border border-cyan-500/40 focus:border-cyan-400 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 outline-none font-medium" />
+      </div>
+    </div>
+
+    <!-- Tombol Aksi Utama -->
+    <div class="flex flex-col gap-2.5 pb-1">
+      <button onclick="goToSectorMap()"
+        class="w-full py-3.5 rounded-2xl font-orbitron font-bold text-sm tracking-wider uppercase text-slate-950 bg-gradient-to-r from-cyan-400 via-sky-300 to-emerald-300 shadow-[0_0_25px_rgba(34,211,238,0.45)] active:scale-[0.98] transition flex items-center justify-center gap-2">
+        <span>🚀 MULAI MISI</span>
+      </button>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <button onclick="openModal('modal-formula')"
+          class="py-3 px-3 rounded-2xl bg-slate-900/90 border border-cyan-500/35 hover:border-cyan-400 text-cyan-200 font-semibold text-xs flex items-center justify-center gap-1.5 active:scale-[0.98] transition">
+          <span>📘</span>
+          <span>Buku Saku Rumus</span>
+        </button>
+        <button onclick="openModal('modal-garage')"
+          class="py-3 px-3 rounded-2xl bg-slate-900/90 border border-fuchsia-500/35 hover:border-fuchsia-400 text-fuchsia-200 font-semibold text-xs flex items-center justify-center gap-1.5 active:scale-[0.98] transition">
+          <span>🛸</span>
+          <span>Garasi Drone</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 2. PETA DUNIA (SECTOR MAP) ==================== -->
+  <section id="screen-map" class="hidden relative z-10 flex-col h-full p-4 overflow-hidden">
+    <!-- Top Bar Peta -->
+    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+      <button onclick="showScreen('screen-title')" class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-300 hover:text-white flex items-center gap-1 active:scale-95">
+        <span>←</span> <span>Markas</span>
+      </button>
+      <div class="text-center">
+        <h2 class="font-orbitron text-sm font-bold text-cyan-300 tracking-wider">PETA SEKTOR</h2>
+        <p class="text-[10px] text-slate-400">Pilih Sektor & Tingkat Kesukaran</p>
+      </div>
+      <div class="flex items-center gap-1.5 bg-slate-900 border border-amber-500/30 px-2.5 py-1.5 rounded-xl">
+        <span class="text-amber-400 text-xs">✦</span>
+        <span id="map-starbits" class="font-mono-code text-xs font-bold text-amber-300">0</span>
+      </div>
+    </div>
+
+    <!-- Mode Buka Semua Level (Untuk Simulasi/Guru/Siswa Mandiri) -->
+    <div class="flex items-center justify-between bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-2 mt-2.5">
+      <div>
+        <p class="text-[11px] font-semibold text-slate-200">Mode Akses Bebas (Latihan Cepat)</p>
+        <p class="text-[10px] text-slate-400">Buka semua Tier tanpa harus berurutan</p>
+      </div>
+      <button id="btn-unlock-all" onclick="toggleUnlockAll()" class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition bg-slate-800 border-slate-600 text-slate-300">
+        OFF
+      </button>
+    </div>
+
+    <!-- Daftar 5 Sektor -->
+    <div id="sector-list" class="flex-1 overflow-y-auto custom-scroll space-y-3 py-3 pr-0.5">
+      <!-- Diisi dinamis oleh JS -->
+    </div>
+  </section>
+
+  <!-- ==================== 3. LAYAR GAMEPLAY (KOKPIT & KARTESIUS) ==================== -->
+  <section id="screen-game" class="hidden relative z-10 flex-col h-full overflow-hidden">
+    <!-- HUD ATAS -->
+    <header class="px-3 pt-2.5 pb-2 bg-slate-950/90 border-b border-cyan-500/25 flex items-center justify-between gap-1.5 shrink-0">
+      <button onclick="confirmExitMission()" class="p-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 text-xs active:scale-95" title="Kembali ke Peta">
+        ✕
+      </button>
+
+      <!-- Info Sektor & Progres Soal -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-1.5">
+          <span id="hud-sector-badge" class="font-orbitron text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 truncate">
+            ALPHA • KADET
+          </span>
+          <span id="hud-progress" class="font-mono-code text-[11px] font-bold text-slate-300">1/5</span>
+        </div>
+        <!-- Progress Bar Soal -->
+        <div class="w-full h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
+          <div id="hud-progress-bar" class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-300" style="width: 20%"></div>
+        </div>
+      </div>
+
+      <!-- Streak / Hyper-Drive Badge -->
+      <div id="hud-streak-box" class="flex flex-col items-center justify-center px-2 py-1 rounded-xl bg-slate-900 border border-slate-700 transition-all">
+        <span id="hud-streak-label" class="text-[9px] font-orbitron uppercase text-slate-400 leading-none">STREAK</span>
+        <span id="hud-streak-val" class="font-mono-code text-xs font-bold text-cyan-300 leading-tight">0x</span>
+      </div>
+
+      <!-- Tombol Buku Saku Rumus (Penalti Skor Kecil) -->
+      <button onclick="openFormulaInGame()" class="p-2 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-300 text-xs active:scale-95" title="Buku Saku Rumus (-5 Star-Bits)">
+        📘
+      </button>
+    </header>
+
+    <!-- BANNER INSTRUKSI MISI (BRIEFING) -->
+    <div id="mission-banner" class="mx-3 mt-2 px-3 py-2 rounded-xl bg-slate-900/95 border border-cyan-500/35 shadow-lg shrink-0">
+      <div class="flex items-center justify-between gap-2 mb-0.5">
+        <span id="mission-type-tag" class="text-[10px] font-orbitron uppercase tracking-wider text-cyan-400 font-bold">
+          MISI TRANSLASI
+        </span>
+        <div class="flex items-center gap-2">
+          <span id="hud-timer-badge" class="hidden font-mono-code text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30">
+            ⏱ 45s
+          </span>
+          <span class="font-mono-code text-[11px] text-amber-300 font-bold">✦ <span id="hud-session-bits">0</span></span>
+        </div>
+      </div>
+      <p id="mission-instruction" class="text-xs text-slate-100 leading-snug font-medium">
+        Memuat koordinat portal...
+      </p>
+    </div>
+
+    <!-- AREA BIDANG KARTESIUS INTERAKTIF (CANVAS) -->
+    <div id="canvas-wrapper" class="relative flex-1 mx-3 my-2 rounded-2xl overflow-hidden border border-cyan-500/30 bg-[#050a18] shadow-inner min-h-[190px]">
+      <canvas id="cartesian-canvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+      <!-- Badge Info Koordinat Tap (Khusus Tier 1 Kadet / Bantuan Visual) -->
+      <div id="canvas-hover-readout" class="hidden absolute top-2 left-2 px-2.5 py-1 rounded-lg bg-slate-950/85 border border-cyan-400/40 font-mono-code text-[11px] text-cyan-200 pointer-events-none">
+        Radar Kursor: (0, 0)
+      </div>
+
+      <!-- Tombol Reset Zoom / Posisi -->
+      <div class="absolute top-2 right-2 flex gap-1">
+        <span id="tier-assist-badge" class="px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-[9px] font-semibold text-emerald-300">
+          👁 Ghost Preview Aktif
+        </span>
+      </div>
+
+      <!-- Toast Umpan Balik AI Co-Pilot (Overlay di bagian bawah Canvas agar tidak menutup panel kontrol) -->
+      <div id="copilot-toast" class="hidden absolute inset-x-2 bottom-2 p-2.5 rounded-xl bg-slate-950/95 border border-rose-400/60 shadow-2xl backdrop-blur-md transition-all">
+        <div class="flex items-start gap-2">
+          <div class="w-7 h-7 rounded-lg bg-rose-500/20 border border-rose-400/50 flex items-center justify-center shrink-0 text-sm">
+            🤖
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <span class="font-orbitron text-[10px] font-bold text-rose-300 uppercase">AI Co-Pilot Analisis</span>
+              <button onclick="hideCopilotToast()" class="text-slate-400 hover:text-white text-xs px-1">✕</button>
+            </div>
+            <p id="copilot-message" class="text-[11px] text-slate-200 leading-snug mt-0.5"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kotak Petunjuk Uji Radar -->
+      <div id="hint-toast" class="hidden absolute inset-x-2 top-9 p-2.5 rounded-xl bg-amber-950/95 border border-amber-400/60 shadow-xl backdrop-blur-md">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-start gap-2">
+            <span class="text-sm">📡</span>
+            <div>
+              <span class="font-orbitron text-[10px] font-bold text-amber-300 uppercase block">Sinyal Uji Radar</span>
+              <p id="hint-message" class="text-[11px] text-amber-100 leading-snug mt-0.5"></p>
+            </div>
+          </div>
+          <button onclick="document.getElementById('hint-toast').classList.add('hidden')" class="text-amber-300 text-xs">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL KONTROL KOKPIT BAWAH (INPUT KOORDINAT & CUSTOM KEYPAD) -->
+    <div class="bg-slate-950/95 border-t border-cyan-500/30 px-3 pt-2 pb-2.5 shrink-0">
+      <!-- Tab Titik Sudut (Hanya muncul di Tier 3 Soal Bangun Datar Segitiga ABC) -->
+      <div id="vertex-tabs" class="hidden grid-cols-3 gap-1.5 mb-2">
+        <button onclick="selectVertex(0)" id="vtab-0" class="py-1 rounded-lg font-mono-code text-xs font-bold border border-cyan-400 bg-cyan-500/20 text-cyan-200">
+          Titik A'
+        </button>
+        <button onclick="selectVertex(1)" id="vtab-1" class="py-1 rounded-lg font-mono-code text-xs font-bold border border-slate-700 bg-slate-900 text-slate-400">
+          Titik B'
+        </button>
+        <button onclick="selectVertex(2)" id="vtab-2" class="py-1 rounded-lg font-mono-code text-xs font-bold border border-slate-700 bg-slate-900 text-slate-400">
+          Titik C'
+        </button>
+      </div>
+
+      <!-- Baris Input Koordinat x' dan y' + Tombol Radar -->
+      <div class="flex items-center gap-2 mb-2">
+        <!-- Input X -->
+        <div onclick="setActiveAxis('x')" id="slot-x" class="coord-slot active flex-1 flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-700 cursor-pointer">
+          <span id="label-x" class="font-mono-code text-xs font-bold text-cyan-400">x' =</span>
+          <span id="val-x" class="font-mono-code text-base font-bold text-white min-w-[28px] text-right">_</span>
+        </div>
+
+        <!-- Input Y -->
+        <div onclick="setActiveAxis('y')" id="slot-y" class="coord-slot flex-1 flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-700 cursor-pointer">
+          <span id="label-y" class="font-mono-code text-xs font-bold text-fuchsia-400">y' =</span>
+          <span id="val-y" class="font-mono-code text-base font-bold text-white min-w-[28px] text-right">_</span>
+        </div>
+
+        <!-- Tombol Uji Radar (Hint) -->
+        <button onclick="triggerRadarHint()" id="btn-radar-hint"
+          class="px-2.5 py-2 rounded-xl bg-amber-500/15 border border-amber-400/50 text-amber-300 font-semibold text-[11px] flex flex-col items-center justify-center leading-tight active:scale-95 shrink-0">
+          <span>📡 Radar</span>
+          <span id="radar-cost-label" class="text-[9px] text-amber-200/80">Gratis</span>
+        </button>
+      </div>
+
+      <!-- Custom Mobile Keypad (Anti-Keyboard OS Overlap) -->
+      <div class="grid grid-cols-6 gap-1.5">
+        <button onclick="pressKey('1')" class="keypad-btn py-2 rounded-xl font-mono-code text-sm font-bold text-white">1</button>
+        <button onclick="pressKey('2')" class="keypad-btn py-2 rounded-xl font-mono-code text-sm font-bold text-white">2</button>
+        <button onclick="pressKey('3')" class="keypad-btn py-2 rounded-xl font-mono-code text-sm font-bold text-white">3</button>
+        <button onclick="pressKey('4')" class="keypad-btn py-2 rounded-xl font-mono-code text-sm font-bold text-white">4</button>
+        <button onclick="pressKey('5')" class="keypad-btn py-2 rounded-xl font-mono-code text-sm font-bold text-white">5</button>
+        <button onclick="pressKey('-')" class="keypad-btn py-2 rounded-xl font-mono-code text-sm font-bold text-amber-300">− / +</button>
+
+        <button onclick="pressKey('6')" class="keypad-btn py-2 rounded-xl font-mono-code text-sm font-bold text-white">6</button>
+        <button onclick="pressKey('7')" class="keypad-btn py-2 rounded-xl font-mono-code text-sm font-bold text-white">7</button>
+        <button onclick="pressKey('8')" class="keypad-btn py-2 rounded-xl font-mono-code text-sm font-bold text-white">8</button>
+        <button onclick="pressKey('9')" class="keypad-btn py-2 rounded-xl font-mono-code text-sm font-bold text-white">9</button>
+        <button onclick="pressKey('0')" class="keypad-btn py-2 rounded-xl font-mono-code text-sm font-bold text-white">0</button>
+        <button onclick="pressKey('DEL')" class="keypad-btn py-2 rounded-xl font-mono-code text-xs font-bold text-rose-300">⌫</button>
+
+        <!-- Baris Bawah Keypad: Desimal/Pecahan, Pindah X/Y, dan Tombol LUNCURKAN -->
+        <button onclick="pressKey('.')" class="keypad-btn py-2.5 rounded-xl font-mono-code text-sm font-bold text-cyan-300" title="Titik Desimal (misal 0.5)">.</button>
+        <button onclick="toggleAxis()" class="keypad-btn col-span-2 py-2.5 rounded-xl font-orbitron text-[11px] font-bold text-cyan-200">
+          ⇄ Pindah x'/y'
+        </button>
+        <button onclick="submitCoordinates()" id="btn-launch"
+          class="col-span-3 py-2.5 rounded-xl font-orbitron text-xs font-extrabold tracking-wider uppercase text-slate-950 bg-gradient-to-r from-emerald-400 via-cyan-300 to-sky-400 shadow-[0_0_16px_rgba(16,185,129,0.45)] active:scale-95 transition">
+          🚀 LUNCURKAN!
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 4. SERTIFIKAT / KARTU REKAP DIGITAL ==================== -->
+  <section id="screen-certificate" class="hidden relative z-20 flex-col justify-between h-full p-4 overflow-y-auto custom-scroll bg-slate-950/95">
+    <div class="text-center pt-1">
+      <span class="px-3 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-orbitron text-[10px] uppercase tracking-widest">
+        Misi Selesai • Transmisi Berhasil
+      </span>
+      <h2 class="font-orbitron text-lg font-extrabold text-white mt-1">KARTU REKAP MISI</h2>
+    </div>
+
+    <!-- Kartu Sertifikat Siap Screenshot -->
+    <div id="certificate-card" class="my-2 p-4 rounded-3xl bg-gradient-to-br from-slate-900 via-[#0c1a38] to-slate-950 border-2 border-cyan-400/60 shadow-[0_0_35px_rgba(34,211,238,0.25)] relative overflow-hidden">
+      <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-cyan-500/10 blur-xl pointer-events-none"></div>
+      <div class="absolute -left-8 -bottom-8 w-32 h-32 rounded-full bg-fuchsia-500/10 blur-xl pointer-events-none"></div>
+
+      <div class="flex items-center justify-between border-b border-cyan-500/25 pb-2.5">
+        <div>
+          <p class="font-orbitron text-[10px] text-cyan-400 tracking-widest uppercase">GEO-SHIFT ACADEMY</p>
+          <p class="text-[10px] text-slate-400">Sertifikat Kelancaran Geometri</p>
+        </div>
+        <div id="cert-stars" class="text-xl tracking-widest text-amber-400 drop-shadow">
+          ★★★
+        </div>
+      </div>
+
+      <!-- Identitas Kadet & Gelar -->
+      <div class="my-3 text-center bg-slate-950/70 rounded-2xl p-3 border border-slate-800">
+        <p class="text-[10px] uppercase tracking-wider text-slate-400">Diberikan Kepada Pilot:</p>
+        <h3 id="cert-pilot-name" class="font-orbitron text-lg font-black text-white mt-0.5 truncate">
+          Kadet Penjelajah
+        </h3>
+        <div class="inline-block mt-1.5 px-3 py-0.5 rounded-full bg-fuchsia-500/20 border border-fuchsia-400/40">
+          <span id="cert-title-badge" class="text-[11px] font-bold text-fuchsia-200">Navigator Andal</span>
+        </div>
+      </div>
+
+      <!-- Detail Sektor & Skor -->
+      <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+        <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+          <span class="text-[10px] text-slate-400 block">Sektor & Tier</span>
+          <span id="cert-sector-tier" class="font-bold text-cyan-300 text-[11px]">Alpha • Kadet</span>
+        </div>
+        <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+          <span class="text-[10px] text-slate-400 block">Star-Bits Didapat</span>
+          <span id="cert-bits-earned" class="font-mono-code font-bold text-amber-300 text-xs">+120 ✦</span>
+        </div>
+      </div>
+
+      <!-- Rincian Akurasi per Rumus -->
+      <div class="bg-slate-950/80 rounded-xl p-2.5 border border-slate-800/90">
+        <p class="text-[10px] font-orbitron uppercase text-slate-400 mb-1.5">Analisis Akurasi Rumus:</p>
+        <div id="cert-breakdown" class="space-y-1.5 text-[11px]">
+          <!-- Diisi dinamis -->
+        </div>
+      </div>
+
+      <div class="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between text-[9px] text-slate-400 font-mono-code">
+        <span id="cert-date">TGL: -</span>
+        <span>STATUS: TERVERIFIKASI ✓</span>
+      </div>
+    </div>
+
+    <p class="text-center text-[10px] text-slate-400 mb-2">
+      📸 Silakan screenshot kartu di atas untuk dikumpulkan kepada guru!
+    </p>
+
+    <div class="grid grid-cols-2 gap-2.5 pb-1">
+      <button onclick="retryCurrentMission()" class="py-3 rounded-2xl bg-slate-900 border border-cyan-500/40 text-cyan-200 font-orbitron text-xs font-bold active:scale-95">
+        ↻ Ulangi Misi
+      </button>
+      <button onclick="goToSectorMap()" class="py-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-orbitron text-xs font-extrabold active:scale-95">
+        Peta Sektor →
+      </button>
+    </div>
+  </section>
+
+  <!-- ==================== MODAL BUKU SAKU RUMUS ==================== -->
+  <div id="modal-formula" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-[400px] max-h-[82dvh] bg-slate-900 border border-cyan-500/40 rounded-3xl flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span>📘</span>
+          <h3 class="font-orbitron text-sm font-bold text-cyan-300">BUKU SAKU RUMUS</h3>
+        </div>
+        <button onclick="closeModal('modal-formula')" class="w-7 h-7 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center text-xs">✕</button>
+      </div>
+
+      <div class="p-4 overflow-y-auto custom-scroll space-y-3 text-xs">
+        <!-- Translasi -->
+        <div class="p-3 rounded-2xl bg-slate-950/90 border border-cyan-500/25">
+          <h4 class="font-orbitron font-bold text-cyan-300 text-xs mb-1">1. TRANSLASI (Pergeseran)</h4>
+          <p class="text-slate-300 mb-1">Titik <span class="font-mono-code text-white">A(x, y)</span> digeser sejauh <span class="font-mono-code text-amber-300">T(a, b)</span>:</p>
+          <div class="font-mono-code bg-slate-900 px-2.5 py-1.5 rounded-lg text-emerald-300 font-bold">
+            A'(x + a, y + b)
+          </div>
+        </div>
+
+        <!-- Refleksi -->
+        <div class="p-3 rounded-2xl bg-slate-950/90 border border-fuchsia-500/25">
+          <h4 class="font-orbitron font-bold text-fuchsia-300 text-xs mb-1.5">2. REFLEKSI (Pencerminan)</h4>
+          <ul class="space-y-1 font-mono-code text-[11px] text-slate-200">
+            <li class="flex justify-between bg-slate-900 px-2 py-1 rounded"><span>Sumbu X:</span> <span class="text-fuchsia-300">(x, −y)</span></li>
+            <li class="flex justify-between bg-slate-900 px-2 py-1 rounded"><span>Sumbu Y:</span> <span class="text-fuchsia-300">(−x, y)</span></li>
+            <li class="flex justify-between bg-slate-900 px-2 py-1 rounded"><span>Titik Asal (0,0):</span> <span class="text-fuchsia-300">(−x, −y)</span></li>
+            <li class="flex justify-between bg-slate-900 px-2 py-1 rounded"><span>Garis y = x:</span> <span class="text-fuchsia-300">(y, x)</span></li>
+            <li class="flex justify-between bg-slate-900 px-2 py-1 rounded"><span>Garis y = −x:</span> <span class="text-fuchsia-300">(−y, −x)</span></li>
+            <li class="flex justify-between bg-slate-900 px-2 py-1 rounded"><span>Garis x = h:</span> <span class="text-amber-300">(2h − x, y)</span></li>
+            <li class="flex justify-between bg-slate-900 px-2 py-1 rounded"><span>Garis y = h:</span> <span class="text-amber-300">(x, 2h − y)</span></li>
+          </ul>
+        </div>
+
+        <!-- Rotasi -->
+        <div class="p-3 rounded-2xl bg-slate-950/90 border border-amber-500/25">
+          <h4 class="font-orbitron font-bold text-amber-300 text-xs mb-1.5">3. ROTASI Pusat O(0,0)</h4>
+          <ul class="space-y-1 font-mono-code text-[11px] text-slate-200">
+            <li class="flex justify-between bg-slate-900 px-2 py-1 rounded"><span>+90° (Berlawanan jarum jam):</span> <span class="text-amber-300">(−y, x)</span></li>
+            <li class="flex justify-between bg-slate-900 px-2 py-1 rounded"><span>−90° (Searah jarum jam):</span> <span class="text-amber-300">(y, −x)</span></li>
+            <li class="flex justify-between bg-slate-900 px-2 py-1 rounded"><span>180° (Setengah putaran):</span> <span class="text-amber-300">(−x, −y)</span></li>
+          </ul>
+        </div>
+
+        <!-- Dilatasi -->
+        <div class="p-3 rounded-2xl bg-slate-950/90 border border-emerald-500/25">
+          <h4 class="font-orbitron font-bold text-emerald-300 text-xs mb-1">4. DILATASI Pusat O(0,0)</h4>
+          <p class="text-slate-300 mb-1">Titik <span class="font-mono-code text-white">A(x, y)</span> dengan faktor skala <span class="font-mono-code text-emerald-300">k</span>:</p>
+          <div class="font-mono-code bg-slate-900 px-2.5 py-1.5 rounded-lg text-emerald-300 font-bold">
+            A'(k · x, k · y)
+          </div>
+        </div>
+      </div>
+
+      <div class="p-3 bg-slate-950 border-t border-slate-800">
+        <button onclick="closeModal('modal-formula')" class="w-full py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-orbitron text-xs font-bold">
+          Mengerti, Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL GARASI DRONE ==================== -->
+  <div id="modal-garage" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-[400px] max-h-[84dvh] bg-slate-900 border border-fuchsia-500/40 rounded-3xl flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span>🛸</span>
+          <h3 class="font-orbitron text-sm font-bold text-fuchsia-300">GARASI DRONE</h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="font-mono-code text-xs font-bold text-amber-300 bg-slate-900 px-2.5 py-1 rounded-full border border-amber-500/30">
+            ✦ <span id="garage-starbits">0</span>
+          </span>
+          <button onclick="closeModal('modal-garage')" class="w-7 h-7 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center text-xs">✕</button>
+        </div>
+      </div>
+
+      <div class="p-4 overflow-y-auto custom-scroll space-y-4 text-xs">
+        <div>
+          <h4 class="font-orbitron text-[11px] font-bold text-cyan-300 uppercase mb-2">1. Warna Rangka Drone</h4>
+          <div id="garage-hulls" class="grid grid-cols-2 gap-2">
+            <!-- Diisi JS -->
+          </div>
+        </div>
+
+        <div>
+          <h4 class="font-orbitron text-[11px] font-bold text-fuchsia-300 uppercase mb-2">2. Efek Jejak Laser</h4>
+          <div id="garage-trails" class="grid grid-cols-2 gap-2">
+            <!-- Diisi JS -->
+          </div>
+        </div>
+      </div>
+
+      <div class="p-3 bg-slate-950 border-t border-slate-800">
+        <button onclick="closeModal('modal-garage')" class="w-full py-2.5 rounded-xl bg-fuchsia-500 text-slate-950 font-orbitron text-xs font-bold">
+          Simpan & Keluar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL KONFIRMASI KELUAR MISI ==================== -->
+  <div id="modal-exit" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-5">
+    <div class="w-full max-w-[330px] bg-slate-900 border border-rose-500/40 rounded-3xl p-5 text-center shadow-2xl">
+      <div class="text-3xl mb-2">⚠️</div>
+      <h3 class="font-orbitron text-sm font-bold text-white">Batalkan Misi Saat Ini?</h3>
+      <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">
+        Progres soal pada sesi ini tidak akan disimpan ke sertifikat jika kamu keluar sekarang.
+      </p>
+      <div class="grid grid-cols-2 gap-2.5 mt-4">
+        <button onclick="closeModal('modal-exit')" class="py-2.5 rounded-xl bg-slate-800 text-slate-200 font-semibold text-xs">
+          Lanjut Main
+        </button>
+        <button onclick="abortMissionToMap()" class="py-2.5 rounded-xl bg-rose-500 text-white font-bold text-xs">
+          Keluar Misi
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/**
+ * ============================================================================
+ * GEO-SHIFT: MISI PENJELAJAH KOORDINAT
+ * Game Edukasi HTML5 Transformasi Geometri SMP Fase D
+ * ============================================================================
+ */
+
+// ==================== 1. SISTEM AUDIO SINTESIS (WEB AUDIO API) ====================
+const SoundFX = (() => {
+  let ctx = null;
+  let muted = false;
+
+  function init() {
+    if (!ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) ctx = new AudioCtx();
+    }
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+  }
+
+  function playTone(freq, type, duration, vol = 0.12, slideTo = null) {
+    if (muted) return;
+    init();
+    if (!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      if (slideTo) {
+        osc.frequency.exponentialRampToValueAtTime(slideTo, ctx.currentTime + duration);
+      }
+      gain.gain.setValueAtTime(vol, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + duration);
+    } catch (e) {}
+  }
+
+  return {
+    isMuted: () => muted,
+    toggle: () => {
+      muted = !muted;
+      return muted;
+    },
+    click: () => playTone(620, 'sine', 0.06, 0.08, 800),
+    key: () => playTone(480, 'triangle', 0.05, 0.07),
+    launch: () => {
+      playTone(240, 'sawtooth', 0.25, 0.09, 680);
+      setTimeout(() => playTone(520, 'sine', 0.2, 0.08, 880), 90);
+    },
+    success: () => {
+      playTone(523.25, 'triangle', 0.14, 0.12);
+      setTimeout(() => playTone(659.25, 'triangle', 0.14, 0.12), 110);
+      setTimeout(() => playTone(783.99, 'triangle', 0.28, 0.14), 220);
+    },
+    hyperDrive: () => {
+      [523, 659, 783, 1046].forEach((f, idx) => {
+        setTimeout(() => playTone(f, 'sine', 0.22, 0.12, f * 1.15), idx * 75);
+      });
+    },
+    bounceError: () => {
+      playTone(220, 'sawtooth', 0.18, 0.12, 110);
+      setTimeout(() => playTone(165, 'square', 0.22, 0.1, 95), 140);
+    },
+    hint: () => playTone(740, 'sine', 0.18, 0.09, 980)
+  };
+})();
+
+function toggleAudio() {
+  const isMuted = SoundFX.toggle();
+  const btn = document.getElementById('btn-audio-title');
+  if (btn) btn.textContent = isMuted ? '🔇' : '🔊';
+}
+
+// ==================== 2. STATE PENYIMPANAN & KUSTOMISASI ====================
+const HULL_ITEMS = [
+  { id: 'cyan', name: 'Cyan Nova', color: '#38bdf8', accent: '#0284c7', cost: 0 },
+  { id: 'gold', name: 'Solar Gold', color: '#fbbf24', accent: '#d97706', cost: 60 },
+  { id: 'emerald', name: 'Emerald Viper', color: '#34d399', accent: '#059669', cost: 100 },
+  { id: 'crimson', name: 'Crimson Phantom', color: '#fb7185', accent: '#e11d48', cost: 150 }
+];
+
+const TRAIL_ITEMS = [
+  { id: 'plasma', name: 'Plasma Cyan', color: '#22d3ee', cost: 0 },
+  { id: 'fire', name: 'Api Kosmik', color: '#f97316', cost: 50 },
+  { id: 'lightning', name: 'Petir Ungu', color: '#c084fc', cost: 90 },
+  { id: 'rainbow', name: 'Pelangi Spektrum', color: 'rainbow', cost: 140 }
+];
+
+const SECTORS = [
+  {
+    id: 'alpha',
+    code: 'SEKTOR ALPHA',
+    title: 'Translasi (Pergeseran)',
+    desc: 'Geser koordinat drone sesuai vektor T(a, b) menuju portal.',
+    color: 'cyan',
+    icon: '↗️'
+  },
+  {
+    id: 'beta',
+    code: 'SEKTOR BETA',
+    title: 'Refleksi (Pencerminan)',
+    desc: 'Pantulkan posisi drone terhadap sumbu & garis cermin dimensi.',
+    color: 'fuchsia',
+    icon: '🪞'
+  },
+  {
+    id: 'gamma',
+    code: 'SEKTOR GAMMA',
+    title: 'Rotasi Pusat O(0,0)',
+    desc: 'Putar lintasan orbit drone +90°, −90°, dan 180° mengelilingi pusat.',
+    color: 'amber',
+    icon: '🔄'
+  },
+  {
+    id: 'delta',
+    code: 'SEKTOR DELTA',
+    title: 'Dilatasi Pusat O(0,0)',
+    desc: 'Perbesar atau perkecil jarak koordinat dengan faktor skala k.',
+    color: 'emerald',
+    icon: '💠'
+  },
+  {
+    id: 'omega',
+    code: 'SEKTOR OMEGA',
+    title: 'Boss Mode: Komposisi',
+    desc: 'Tantangan gabungan seluruh transformasi geometri untuk membuka gerbang akhir!',
+    color: 'rose',
+    icon: '👑'
+  }
+];
+
+let playerState = {
+  name: 'Kadet Penjelajah',
+  starBits: 40,
+  unlockedHulls: ['cyan'],
+  equippedHull: 'cyan',
+  unlockedTrails: ['plasma'],
+  equippedTrail: 'plasma',
+  // Progress: { alpha: 1, beta: 1, gamma: 1, delta: 1, omega: 1 } -> tier tertinggi terbuka (1..3)
+  unlockedTiers: {
+    alpha: 1,
+    beta: 1,
+    gamma: 1,
+    delta: 1,
+    omega: 1
+  },
+  starsEarned: {}, // key: "alpha_1": 3
+  freePlayAll: false
+};
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('geoshift_save_v1');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      playerState = { ...playerState, ...parsed };
+    }
+  } catch (e) {}
+  document.getElementById('pilot-name-input').value = playerState.name === 'Kadet Penjelajah' ? '' : playerState.name;
+  syncCurrencyUI();
+  updateTitleDronePreview();
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('geoshift_save_v1', JSON.stringify(playerState));
+  } catch (e) {}
+  syncCurrencyUI();
+}
+
+function syncCurrencyUI() {
+  document.getElementById('title-starbits').textContent = playerState.starBits;
+  document.getElementById('map-starbits').textContent = playerState.starBits;
+  document.getElementById('garage-starbits').textContent = playerState.starBits;
+}
+
+function updateTitleDronePreview() {
+  const hull = HULL_ITEMS.find(h => h.id === playerState.equippedHull) || HULL_ITEMS[0];
+  const grad = document.getElementById('hullGrad');
+  if (grad) {
+    grad.children[0].setAttribute('stop-color', hull.color);
+    grad.children[1].setAttribute('stop-color', hull.accent);
+  }
+}
+
+// ==================== 3. NAVIGASI LAYAR & MODAL ====================
+function showScreen(screenId) {
+  ['screen-title', 'screen-map', 'screen-game', 'screen-certificate'].forEach(id => {
+    const el = document.getElementById(id);
+    if (id === screenId) {
+      el.classList.remove('hidden');
+      el.classList.add('flex');
+    } else {
+      el.classList.add('hidden');
+      el.classList.remove('flex');
+    }
+  });
+}
+
+function goToSectorMap() {
+  SoundFX.click();
+  const inputName = document.getElementById('pilot-name-input').value.trim();
+  if (inputName) {
+    playerState.name = inputName;
+  } else if (!playerState.name) {
+    playerState.name = 'Kadet Penjelajah';
+  }
+  saveState();
+  renderSectorMap();
+  showScreen('screen-map');
+}
+
+function openModal(id) {
+  SoundFX.click();
+  if (id === 'modal-garage') renderGarage();
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function closeModal(id) {
+  SoundFX.click();
+  document.getElementById(id).classList.add('hidden');
+}
+
+function openFormulaInGame() {
+  SoundFX.click();
+  if (gameSession.active && playerState.starBits >= 5) {
+    playerState.starBits -= 5;
+    saveState();
+  }
+  openModal('modal-formula');
+}
+
+function toggleUnlockAll() {
+  SoundFX.click();
+  playerState.freePlayAll = !playerState.freePlayAll;
+  const btn = document.getElementById('btn-unlock-all');
+  if (playerState.freePlayAll) {
+    btn.textContent = 'ON';
+    btn.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition bg-emerald-500/25 border-emerald-400 text-emerald-300';
+  } else {
+    btn.textContent = 'OFF';
+    btn.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition bg-slate-800 border-slate-600 text-slate-300';
+  }
+  renderSectorMap();
+}
+
+// ==================== 4. RENDER GARASI DRONE ====================
+function renderGarage() {
+  const hullContainer = document.getElementById('garage-hulls');
+  const trailContainer = document.getElementById('garage-trails');
+
+  hullContainer.innerHTML = HULL_ITEMS.map(item => {
+    const owned = playerState.unlockedHulls.includes(item.id);
+    const equipped = playerState.equippedHull === item.id;
+    return `
+      <button onclick="selectHull('${item.id}')" class="p-2.5 rounded-2xl border text-left transition flex flex-col justify-between ${
+        equipped ? 'bg-cyan-500/20 border-cyan-400' : 'bg-slate-950/90 border-slate-800 hover:border-slate-600'
+      }">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="w-5 h-5 rounded-full border border-white/40" style="background:${item.color}"></span>
+          <span class="text-[10px] font-mono-code font-bold ${equipped ? 'text-cyan-300' : owned ? 'text-emerald-400' : 'text-amber-300'}">
+            ${equipped ? 'DIPAKAI' : owned ? 'MILIK' : `✦ ${item.cost}`}
+          </span>
+        </div>
+        <span class="font-semibold text-white text-[11px]">${item.name}</span>
+      </button>
+    `;
+  }).join('');
+
+  trailContainer.innerHTML = TRAIL_ITEMS.map(item => {
+    const owned = playerState.unlockedTrails.includes(item.id);
+    const equipped = playerState.equippedTrail === item.id;
+    const swatch = item.color === 'rainbow'
+      ? 'linear-gradient(90deg, #f43f5e, #f59e0b, #10b981, #38bdf8, #c084fc)'
+      : item.color;
+    return `
+      <button onclick="selectTrail('${item.id}')" class="p-2.5 rounded-2xl border text-left transition flex flex-col justify-between ${
+        equipped ? 'bg-fuchsia-500/20 border-fuchsia-400' : 'bg-slate-950/90 border-slate-800 hover:border-slate-600'
+      }">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="w-8 h-2.5 rounded-full" style="background:${swatch}"></span>
+          <span class="text-[10px] font-mono-code font-bold ${equipped ? 'text-fuchsia-300' : owned ? 'text-emerald-400' : 'text-amber-300'}">
+            ${equipped ? 'DIPAKAI' : owned ? 'MILIK' : `✦ ${item.cost}`}
+          </span>
+        </div>
+        <span class="font-semibold text-white text-[11px]">${item.name}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function selectHull(id) {
+  const item = HULL_ITEMS.find(h => h.id === id);
+  if (!item) return;
+  if (playerState.unlockedHulls.includes(id)) {
+    SoundFX.click();
+    playerState.equippedHull = id;
+  } else if (playerState.starBits >= item.cost) {
+    SoundFX.success();
+    playerState.starBits -= item.cost;
+    playerState.unlockedHulls.push(id);
+    playerState.equippedHull = id;
+  } else {
+    SoundFX.bounceError();
+    return;
+  }
+  saveState();
+  updateTitleDronePreview();
+  renderGarage();
+}
+
+function selectTrail(id) {
+  const item = TRAIL_ITEMS.find(t => t.id === id);
+  if (!item) return;
+  if (playerState.unlockedTrails.includes(id)) {
+    SoundFX.click();
+    playerState.equippedTrail = id;
+  } else if (playerState.starBits >= item.cost) {
+    SoundFX.success();
+    playerState.starBits -= item.cost;
+    playerState.unlockedTrails.push(id);
+    playerState.equippedTrail = id;
+  } else {
+    SoundFX.bounceError();
+    return;
+  }
+  saveState();
+  renderGarage();
+}
+
+// ==================== 5. RENDER PETA SEKTOR ====================
+function renderSectorMap() {
+  const list = document.getElementById('sector-list');
+  const tierNames = [
+    { tier: 1, label: 'Tier 1: Kadet', sub: 'Visual & Pola' },
+    { tier: 2, label: 'Tier 2: Navigator', sub: 'Ketepatan Rumus' },
+    { tier: 3, label: 'Tier 3: Komandan', sub: 'Analisis & Bangun' }
+  ];
+
+  list.innerHTML = SECTORS.map(sec => {
+    const maxUnlocked = playerState.freePlayAll ? 3 : (playerState.unlockedTiers[sec.id] || 1);
+    return `
+      <div class="rounded-2xl bg-slate-900/90 border border-slate-700/80 p-3.5 shadow-lg">
+        <div class="flex items-start justify-between gap-2 mb-2">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-slate-950 border border-cyan-500/30 flex items-center justify-center text-lg">
+              ${sec.icon}
+            </div>
+            <div>
+              <span class="font-orbitron text-[10px] font-bold tracking-wider text-cyan-400 block">${sec.code}</span>
+              <h3 class="font-bold text-sm text-white leading-tight">${sec.title}</h3>
+            </div>
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-300/90 mb-3 leading-relaxed">${sec.desc}</p>
+
+        <div class="grid grid-cols-3 gap-1.5">
+          ${tierNames.map(t => {
+            const unlocked = t.tier <= maxUnlocked;
+            const stars = playerState.starsEarned[`${sec.id}_${t.tier}`] || 0;
+            const starStr = stars > 0 ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '☆☆☆';
+            if (unlocked) {
+              return `
+                <button onclick="startMission('${sec.id}', ${t.tier})"
+                  class="p-2 rounded-xl bg-slate-950 border border-cyan-500/40 hover:border-cyan-300 active:scale-95 transition text-left flex flex-col justify-between">
+                  <span class="font-orbitron text-[10px] font-bold text-cyan-300 block">TIER ${t.tier}</span>
+                  <span class="text-[10px] font-semibold text-white truncate">${t.label.split(': ')[1]}</span>
+                  <span class="text-[10px] text-amber-400 mt-1 tracking-tighter">${starStr}</span>
+                </button>
+              `;
+            } else {
+              return `
+                <div class="p-2 rounded-xl bg-slate-950/50 border border-slate-800 opacity-55 text-left flex flex-col justify-between">
+                  <span class="font-orbitron text-[10px] font-bold text-slate-500 block">🔒 TIER ${t.tier}</span>
+                  <span class="text-[10px] text-slate-500 truncate">${t.label.split(': ')[1]}</span>
+                  <span class="text-[9px] text-slate-600 mt-1">Terkunci</span>
+                </div>
+              `;
+            }
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ==================== 6. GENERATOR SOAL TRANSFORMASI GEOMETRI ====================
+function randInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randNonZero(min, max) {
+  let v = 0;
+  while (v === 0) v = randInt(min, max);
+  return v;
+}
+
+function roundClean(num) {
+  return Math.round(num * 100) / 100;
+}
+
+function applyTransform(pt, rule) {
+  const { x, y } = pt;
+  switch (rule.kind) {
+    case 'trans':
+      return { x: x + rule.a, y: y + rule.b };
+    case 'trans2':
+      return { x: x + rule.a1 + rule.a2, y: y + rule.b1 + rule.b2 };
+    case 'ref_x':
+      return { x: x, y: -y };
+    case 'ref_y':
+      return { x: -x, y: y };
+    case 'ref_o':
+      return { x: -x, y: -y };
+    case 'ref_yx':
+      return { x: y, y: x };
+    case 'ref_ynx':
+      return { x: -y, y: -x };
+    case 'ref_xh':
+      return { x: 2 * rule.h - x, y: y };
+    case 'ref_yh':
+      return { x: x, y: 2 * rule.h - y };
+    case 'rot_90':
+      return { x: -y, y: x };
+    case 'rot_n90':
+      return { x: y, y: -x };
+    case 'rot_180':
+      return { x: -x, y: -y };
+    case 'dil':
+      return { x: roundClean(x * rule.k), y: roundClean(y * rule.k) };
+    case 'comp_trans_refx': {
+      // Translasi dulu lalu refleksi sumbu X
+      const tx = x + rule.a;
+      const ty = y + rule.b;
+      return { x: tx, y: -ty };
+    }
+    case 'comp_rot90_trans': {
+      // Rotasi +90 lalu translasi
+      const rx = -y;
+      const ry = x;
+      return { x: rx + rule.a, y: ry + rule.b };
+    }
+    default:
+      return { x, y };
+  }
+}
+
+function generateQuestion(sectorId, tier, index) {
+  let actualSector = sectorId;
+  if (sectorId === 'omega') {
+    const pool = ['alpha', 'beta', 'gamma', 'delta'];
+    actualSector = pool[index % pool.length];
+  }
+
+  // Range koordinat berdasarkan Tier
+  const range = tier === 1 ? 5 : tier === 2 ? 9 : 8;
+  const gridMax = tier === 1 ? 7 : 14;
+
+  // Tentukan aturan transformasi
+  let rule = {};
+  let categoryLabel = '';
+  let formulaHint = '';
+  let instructionText = '';
+
+  if (actualSector === 'alpha') {
+    categoryLabel = 'Translasi';
+    if (tier === 3 && index % 2 === 1) {
+      const a1 = randNonZero(-4, 4), b1 = randNonZero(-4, 4);
+      const a2 = randNonZero(-4, 4), b2 = randNonZero(-4, 4);
+      rule = { kind: 'trans2', a1, b1, a2, b2 };
+      formulaHint = `Translasi beruntun: jumlahkan kedua pergeseran! x' = x + (${a1}) + (${a2}), y' = y + (${b1}) + (${b2}).`;
+    } else {
+      const a = randNonZero(tier === 1 ? -4 : -6, tier === 1 ? 4 : 6);
+      const b = randNonZero(tier === 1 ? -4 : -6, tier === 1 ? 4 : 6);
+      rule = { kind: 'trans', a, b };
+      formulaHint = `Rumus Translasi T(${a}, ${b}): x' = x + (${a}) dan y' = y + (${b}).`;
+    }
+  } else if (actualSector === 'beta') {
+    if (tier === 1) {
+      const pick = index % 3;
+      if (pick === 0) {
+        rule = { kind: 'ref_x' };
+        categoryLabel = 'Refleksi Sumbu X';
+        formulaHint = 'Refleksi terhadap Sumbu X: nilai x tetap, nilai y berubah tanda → A\'(x, −y).';
+      } else if (pick === 1) {
+        rule = { kind: 'ref_y' };
+        categoryLabel = 'Refleksi Sumbu Y';
+        formulaHint = 'Refleksi terhadap Sumbu Y: nilai x berubah tanda, nilai y tetap → A\'(−x, y).';
+      } else {
+        rule = { kind: 'ref_o' };
+        categoryLabel = 'Refleksi Titik Asal O';
+        formulaHint = 'Refleksi terhadap Titik Asal O(0,0): keduanya berubah tanda → A\'(−x, −y).';
+      }
+    } else if (tier === 2) {
+      const types = ['ref_yx', 'ref_ynx', 'ref_xh', 'ref_yh'];
+      const chosen = types[index % types.length];
+      if (chosen === 'ref_yx') {
+        rule = { kind: 'ref_yx' };
+        categoryLabel = 'Refleksi Garis y = x';
+        formulaHint = 'Refleksi terhadap garis y = x: tukar posisi x dan y → A\'(y, x).';
+      } else if (chosen === 'ref_ynx') {
+        rule = { kind: 'ref_ynx' };
+        categoryLabel = 'Refleksi Garis y = −x';
+        formulaHint = 'Refleksi terhadap garis y = −x: tukar posisi dan ubah tanda → A\'(−y, −x).';
+      } else if (chosen === 'ref_xh') {
+        const h = randNonZero(-4, 4);
+        rule = { kind: 'ref_xh', h };
+        categoryLabel = `Refleksi Garis x = ${h}`;
+        formulaHint = `Refleksi terhadap garis x = ${h}: gunakan rumus A'(2h − x, y) = (2(${h}) − x, y).`;
+      } else {
+        const h = randNonZero(-4, 4);
+        rule = { kind: 'ref_yh', h };
+        categoryLabel = `Refleksi Garis y = ${h}`;
+        formulaHint = `Refleksi terhadap garis y = ${h}: gunakan rumus A'(x, 2h − y) = (x, 2(${h}) − y).`;
+      }
+    } else {
+      const types = ['ref_xh', 'ref_yh', 'ref_ynx', 'ref_yx'];
+      const chosen = types[index % types.length];
+      if (chosen === 'ref_xh') {
+        const h = randNonZero(-3, 3);
+        rule = { kind: 'ref_xh', h };
+        categoryLabel = `Refleksi Garis x = ${h}`;
+        formulaHint = `Refleksi garis x = ${h}: x' = 2(${h}) − x, sedangkan y' = y.`;
+      } else if (chosen === 'ref_yh') {
+        const h = randNonZero(-3, 3);
+        rule = { kind: 'ref_yh', h };
+        categoryLabel = `Refleksi Garis y = ${h}`;
+        formulaHint = `Refleksi garis y = ${h}: x' = x, sedangkan y' = 2(${h}) − y.`;
+      } else if (chosen === 'ref_ynx') {
+        rule = { kind: 'ref_ynx' };
+        categoryLabel = 'Refleksi Garis y = −x';
+        formulaHint = 'Refleksi terhadap garis y = −x mengubah (x, y) menjadi (−y, −x).';
+      } else {
+        rule = { kind: 'ref_yx' };
+        categoryLabel = 'Refleksi Garis y = x';
+        formulaHint = 'Refleksi terhadap garis y = x menukar koordinat menjadi (y, x).';
+      }
+    }
+  } else if (actualSector === 'gamma') {
+    const rotList = tier === 1
+      ? ['rot_90', 'rot_n90', 'rot_180', 'rot_90', 'rot_n90']
+      : ['rot_90', 'rot_n90', 'rot_180', 'rot_n90', 'rot_90'];
+    const kind = rotList[index % rotList.length];
+    rule = { kind };
+    if (kind === 'rot_90') {
+      categoryLabel = 'Rotasi +90°';
+      formulaHint = 'Rotasi +90° (berlawanan jarum jam) pusat (0,0): (x, y) → (−y, x).';
+    } else if (kind === 'rot_n90') {
+      categoryLabel = 'Rotasi −90°';
+      formulaHint = 'Rotasi −90° (searah jarum jam) pusat (0,0): (x, y) → (y, −x).';
+    } else {
+      categoryLabel = 'Rotasi 180°';
+      formulaHint = 'Rotasi 180° pusat (0,0): (x, y) → (−x, −y).';
+    }
+  } else if (actualSector === 'delta') {
+    categoryLabel = 'Dilatasi Pusat (0,0)';
+    if (tier === 1) {
+      const k = [2, 3, 2, 3, 2][index % 5];
+      rule = { kind: 'dil', k, kLabel: `${k}` };
+      formulaHint = `Dilatasi faktor skala k = ${k}: kalikan setiap koordinat dengan ${k} → (${k}x, ${k}y).`;
+    } else if (tier === 2) {
+      const scales = [
+        { k: 0.5, label: '1/2 (atau 0.5)' },
+        { k: -2, label: '−2' },
+        { k: 0.5, label: '1/2 (atau 0.5)' },
+        { k: -1, label: '−1' },
+        { k: 3, label: '3' }
+      ];
+      const s = scales[index % scales.length];
+      rule = { kind: 'dil', k: s.k, kLabel: s.label };
+      formulaHint = `Dilatasi faktor skala k = ${s.label}: x' = (${s.k}) · x dan y' = (${s.k}) · y.`;
+    } else {
+      const scales = [
+        { k: -2, label: '−2' },
+        { k: 0.5, label: '1/2' },
+        { k: -0.5, label: '−1/2 (atau −0.5)' },
+        { k: 2, label: '2' },
+        { k: -1, label: '−1' }
+      ];
+      const s = scales[index % scales.length];
+      rule = { kind: 'dil', k: s.k, kLabel: s.label };
+      formulaHint = `Dilatasi faktor skala k = ${s.label}: kalikan x dan y dengan ${s.k}.`;
+    }
+  }
+
+  // Untuk Sektor Omega (Boss Mode), soal ke-4 dan ke-5 menggunakan Komposisi 2 Transformasi!
+  if (sectorId === 'omega' && index >= 3) {
+    const a = randNonZero(-3, 3), b = randNonZero(-3, 3);
+    if (index === 3) {
+      rule = { kind: 'comp_trans_refx', a, b };
+      categoryLabel = 'Komposisi: Translasi + Refleksi';
+      formulaHint = `Langkah 1: Geser dengan T(${a}, ${b}) → (x+${a}, y+${b}). Langkah 2: Cerminkan terhadap sumbu X (ubah tanda y).`;
+    } else {
+      rule = { kind: 'comp_rot90_trans', a, b };
+      categoryLabel = 'Komposisi: Rotasi + Translasi';
+      formulaHint = `Langkah 1: Rotasi +90° → (−y, x). Langkah 2: Geser dengan T(${a}, ${b}) → (−y+${a}, x+${b}).`;
+    }
+  }
+
+  // Tentukan Mode Soal:
+  // Normal: Diketahui titik awal A, cari bayangan A'
+  // Tier 3 soal ke-2 & ke-4: Mode Analisis Balik (Diketahui bayangan A', cari titik asal A!)
+  // Tier 3 soal ke-3 & ke-5: Mode Bangun Datar Segitiga ABC -> cari bayangan A', B', C'!
+  let mode = 'forward';
+  if (tier === 3 && (index === 1 || index === 3)) {
+    mode = 'reverse';
+  } else if (tier === 3 && (index === 2 || index === 4)) {
+    mode = 'polygon';
+  }
+
+  // Generate titik yang rapi & masuk dalam batas grid
+  function createValidPoint() {
+    for (let attempt = 0; attempt < 60; attempt++) {
+      let x = randNonZero(-range, range);
+      let y = randNonZero(-range, range);
+      // Jika dilatasi pecahan 0.5 atau -0.5, pastikan koordinat kelipatan 2 agar bulat
+      if (rule.kind === 'dil' && Math.abs(rule.k) === 0.5) {
+        x = randNonZero(-4, 4) * 2;
+        y = randNonZero(-4, 4) * 2;
+      }
+      const img = applyTransform({ x, y }, rule);
+      if (Math.abs(img.x) <= gridMax - 1 && Math.abs(img.y) <= gridMax - 1) {
+        return { start: { x, y }, target: img };
+      }
+    }
+    return { start: { x: 2, y: -2 }, target: applyTransform({ x: 2, y: -2 }, rule) };
+  }
+
+  let startPts = [];
+  let targetPts = [];
+
+  if (mode === 'polygon') {
+    // Buat segitiga sederhana yang tidak segaris
+    const base = createValidPoint();
+    const p1 = base.start;
+    const step = (rule.kind === 'dil' && Math.abs(rule.k) === 0.5) ? 2 : 2;
+    const p2 = { x: p1.x + (p1.x > 0 ? -step : step), y: p1.y };
+    const p3 = { x: p1.x, y: p1.y + (p1.y > 0 ? -step : step) };
+    startPts = [p1, p2, p3];
+    targetPts = startPts.map(p => applyTransform(p, rule));
+  } else {
+    const pair = createValidPoint();
+    startPts = [pair.start];
+    targetPts = [pair.target];
+  }
+
+  // Susun teks deskripsi aturan transformasi
+  let rulePhrase = '';
+  switch (rule.kind) {
+    case 'trans':
+      rulePhrase = `Translasi T(${rule.a}, ${rule.b})`;
+      break;
+    case 'trans2':
+      rulePhrase = `Translasi beruntun T₁(${rule.a1}, ${rule.b1}) dilanjutkan T₂(${rule.a2}, ${rule.b2})`;
+      break;
+    case 'ref_x':
+      rulePhrase = `Refleksi terhadap Sumbu X`;
+      break;
+    case 'ref_y':
+      rulePhrase = `Refleksi terhadap Sumbu Y`;
+      break;
+    case 'ref_o':
+      rulePhrase = `Refleksi terhadap Titik Asal O(0,0)`;
+      break;
+    case 'ref_yx':
+      rulePhrase = `Refleksi terhadap garis y = x`;
+      break;
+    case 'ref_ynx':
+      rulePhrase = `Refleksi terhadap garis y = −x`;
+      break;
+    case 'ref_xh':
+      rulePhrase = `Refleksi terhadap garis x = ${rule.h}`;
+      break;
+    case 'ref_yh':
+      rulePhrase = `Refleksi terhadap garis y = ${rule.h}`;
+      break;
+    case 'rot_90':
+      rulePhrase = `Rotasi +90° (berlawanan jarum jam) pusat (0,0)`;
+      break;
+    case 'rot_n90':
+      rulePhrase = `Rotasi −90° (searah jarum jam) pusat (0,0)`;
+      break;
+    case 'rot_180':
+      rulePhrase = `Rotasi 180° pusat (0,0)`;
+      break;
+    case 'dil':
+      rulePhrase = `Dilatasi pusat (0,0) dengan faktor skala k = ${rule.kLabel}`;
+      break;
+    case 'comp_trans_refx':
+      rulePhrase = `Translasi T(${rule.a}, ${rule.b}) lalu Refleksi Sumbu X`;
+      break;
+    case 'comp_rot90_trans':
+      rulePhrase = `Rotasi +90° pusat (0,0) lalu Translasi T(${rule.a}, ${rule.b})`;
+      break;
+  }
+
+  if (mode === 'forward') {
+    const p = startPts[0];
+    instructionText = `Drone di A(${p.x}, ${p.y}). Lakukan ${rulePhrase} untuk mengunci Portal A'!`;
+  } else if (mode === 'reverse') {
+    const t = targetPts[0];
+    instructionText = `ANALISIS BALIK: Portal bayangan berada di A'(${t.x}, ${t.y}) setelah ${rulePhrase}. Tentukan titik asal A(x, y)!`;
+  } else {
+    instructionText = `PERISAI SEGITIGA: Transformasikan A(${startPts[0].x},${startPts[0].y}), B(${startPts[1].x},${startPts[1].y}), C(${startPts[2].x},${startPts[2].y}) dengan ${rulePhrase}!`;
+  }
+
+  return {
+    sectorId: actualSector,
+    categoryLabel,
+    rule,
+    mode, // 'forward' | 'reverse' | 'polygon'
+    gridMax,
+    startPts,
+    targetPts,
+    instructionText,
+    formulaHint
+  };
+}
+
+// ==================== 7. ENGINE GAMEPLAY & INPUT KOKPIT ====================
+let gameSession = {
+  active: false,
+  sectorId: 'alpha',
+  tier: 1,
+  questions: [],
+  qIndex: 0,
+  streak: 0,
+  maxStreak: 0,
+  sessionBits: 0,
+  attemptsOnCurrent: 0,
+  hintUsedOnCurrent: false,
+  categoryStats: {}, // { 'Translasi': { total: 0, firstTry: 0 } }
+  timerInterval: null,
+  secondsLeft: 45
+};
+
+let inputState = {
+  activeVertex: 0,
+  activeAxis: 'x',
+  // Array pasangan input [{x: '', y: ''}, ...]
+  values: [{ x: '', y: '' }]
+};
+
+let animState = {
+  dronePos: { x: 0, y: 0 },
+  dronePts: [{ x: 0, y: 0 }],
+  ghostPt: null,
+  status: 'idle', // 'idle' | 'flying_success' | 'flying_bounce'
+  progress: 0,
+  wrongTarget: null,
+  sparks: []
+};
+
+function startMission(sectorId, tier) {
+  SoundFX.click();
+  const questions = [];
+  for (let i = 0; i < 5; i++) {
+    questions.push(generateQuestion(sectorId, tier, i));
+  }
+
+  gameSession = {
+    active: true,
+    sectorId,
+    tier,
+    questions,
+    qIndex: 0,
+    streak: 0,
+    maxStreak: 0,
+    sessionBits: 0,
+    attemptsOnCurrent: 0,
+    hintUsedOnCurrent: false,
+    categoryStats: {},
+    timerInterval: null,
+    secondsLeft: 45
+  };
+
+  const secObj = SECTORS.find(s => s.id === sectorId);
+  const tierLabel = tier === 1 ? 'KADET' : tier === 2 ? 'NAVIGATOR' : 'KOMANDAN';
+  document.getElementById('hud-sector-badge').textContent = `${secObj.code.replace('SEKTOR ', '')} • ${tierLabel}`;
+
+  // Atur badge bantuan Tier 1
+  const assistBadge = document.getElementById('tier-assist-badge');
+  if (tier === 1) {
+    assistBadge.classList.remove('hidden');
+  } else {
+    assistBadge.classList.add('hidden');
+  }
+
+  showScreen('screen-game');
+  resizeCartesianCanvas();
+  loadCurrentQuestion();
+}
+
+function retryCurrentMission() {
+  startMission(gameSession.sectorId, gameSession.tier);
+}
+
+function confirmExitMission() {
+  SoundFX.click();
+  openModal('modal-exit');
+}
+
+function abortMissionToMap() {
+  closeModal('modal-exit');
+  clearInterval(gameSession.timerInterval);
+  gameSession.active = false;
+  goToSectorMap();
+}
+
+function loadCurrentQuestion() {
+  const q = gameSession.questions[gameSession.qIndex];
+  gameSession.attemptsOnCurrent = 0;
+  gameSession.hintUsedOnCurrent = false;
+
+  // Catat statistik kategori
+  if (!gameSession.categoryStats[q.categoryLabel]) {
+    gameSession.categoryStats[q.categoryLabel] = { total: 0, firstTry: 0 };
+  }
+  gameSession.categoryStats[q.categoryLabel].total += 1;
+
+  // Update HUD
+  document.getElementById('hud-progress').textContent = `${gameSession.qIndex + 1}/5`;
+  document.getElementById('hud-progress-bar').style.width = `${((gameSession.qIndex + 1) / 5) * 100}%`;
+  document.getElementById('hud-session-bits').textContent = gameSession.sessionBits;
+  document.getElementById('mission-type-tag').textContent =
+    q.mode === 'reverse' ? `🔍 ${q.categoryLabel} (CARI TITIK ASAL)` :
+    q.mode === 'polygon' ? `🔺 ${q.categoryLabel} (BANGUN DATAR)` :
+    `🎯 ${q.categoryLabel}`;
+  document.getElementById('mission-instruction').textContent = q.instructionText;
+
+  // Sembunyikan toast sebelumnya
+  hideCopilotToast();
+  document.getElementById('hint-toast').classList.add('hidden');
+
+  // Atur tombol biaya Radar
+  const radarLabel = document.getElementById('radar-cost-label');
+  radarLabel.textContent = gameSession.tier === 1 ? 'Gratis' : '−5 Bits';
+
+  // Atur Tab Titik Sudut untuk Polygon vs Single Point
+  const vertexTabs = document.getElementById('vertex-tabs');
+  if (q.mode === 'polygon') {
+    vertexTabs.classList.remove('hidden');
+    vertexTabs.classList.add('grid');
+    inputState.values = [{ x: '', y: '' }, { x: '', y: '' }, { x: '', y: '' }];
+  } else {
+    vertexTabs.classList.add('hidden');
+    vertexTabs.classList.remove('grid');
+    inputState.values = [{ x: '', y: '' }];
+  }
+
+  // Label slot X/Y (A' untuk forward/polygon, A untuk reverse)
+  document.getElementById('label-x').textContent = q.mode === 'reverse' ? 'x =' : "x' =";
+  document.getElementById('label-y').textContent = q.mode === 'reverse' ? 'y =' : "y' =";
+
+  inputState.activeVertex = 0;
+  inputState.activeAxis = 'x';
+  refreshInputUI();
+
+  // Atur Posisi Awal Animasi di Canvas
+  // Pada mode 'reverse', drone mulai dari posisi bayangan A' agar siswa mencari asal A
+  const initialPts = q.mode === 'reverse' ? q.targetPts : q.startPts;
+  animState = {
+    dronePos: { ...initialPts[0] },
+    dronePts: initialPts.map(p => ({ ...p })),
+    ghostPt: null,
+    status: 'idle',
+    progress: 0,
+    wrongTarget: null,
+    sparks: []
+  };
+
+  // Timer santai untuk Tier 2 & 3
+  clearInterval(gameSession.timerInterval);
+  const timerBadge = document.getElementById('hud-timer-badge');
+  if (gameSession.tier >= 2) {
+    gameSession.secondsLeft = gameSession.tier === 2 ? 45 : 75;
+    timerBadge.classList.remove('hidden');
+    timerBadge.textContent = `⏱ ${gameSession.secondsLeft}s`;
+    gameSession.timerInterval = setInterval(() => {
+      if (gameSession.secondsLeft > 0) {
+        gameSession.secondsLeft--;
+        timerBadge.textContent = `⏱ ${gameSession.secondsLeft}s`;
+      }
+    }, 1000);
+  } else {
+    timerBadge.classList.add('hidden');
+  }
+
+  updateStreakUI();
+}
+
+function updateStreakUI() {
+  const box = document.getElementById('hud-streak-box');
+  const label = document.getElementById('hud-streak-label');
+  const val = document.getElementById('hud-streak-val');
+  const shell = document.getElementById('app-shell');
+
+  if (gameSession.streak >= 3) {
+    box.className = 'flex flex-col items-center justify-center px-2 py-1 rounded-xl bg-fuchsia-500/25 border border-fuchsia-400 shadow-[0_0_12px_rgba(232,121,249,0.5)] transition-all';
+    label.textContent = 'HYPER 2X';
+    label.className = 'text-[9px] font-orbitron font-bold uppercase text-fuchsia-300 leading-none';
+    val.textContent = `${gameSession.streak}🔥`;
+    val.className = 'font-mono-code text-xs font-bold text-white leading-tight';
+    shell.classList.add('hyper-drive-active');
+  } else {
+    box.className = 'flex flex-col items-center justify-center px-2 py-1 rounded-xl bg-slate-900 border border-slate-700 transition-all';
+    label.textContent = 'STREAK';
+    label.className = 'text-[9px] font-orbitron uppercase text-slate-400 leading-none';
+    val.textContent = `${gameSession.streak}x`;
+    val.className = 'font-mono-code text-xs font-bold text-cyan-300 leading-tight';
+    shell.classList.remove('hyper-drive-active');
+  }
+}
+
+// ==================== 8. KONTROL CUSTOM KEYPAD & TAB ====================
+function selectVertex(vIdx) {
+  SoundFX.key();
+  inputState.activeVertex = vIdx;
+  inputState.activeAxis = 'x';
+  refreshInputUI();
+}
+
+function setActiveAxis(axis) {
+  SoundFX.key();
+  inputState.activeAxis = axis;
+  refreshInputUI();
+}
+
+function toggleAxis() {
+  SoundFX.key();
+  const q = gameSession.questions[gameSession.qIndex];
+  if (inputState.activeAxis === 'x') {
+    inputState.activeAxis = 'y';
+  } else {
+    inputState.activeAxis = 'x';
+    if (q && q.mode === 'polygon') {
+      inputState.activeVertex = (inputState.activeVertex + 1) % 3;
+    }
+  }
+  refreshInputUI();
+}
+
+function pressKey(key) {
+  if (animState.status !== 'idle') return;
+  SoundFX.key();
+  const pair = inputState.values[inputState.activeVertex];
+  let curr = pair[inputState.activeAxis];
+
+  if (key === 'DEL') {
+    curr = curr.slice(0, -1);
+  } else if (key === '-') {
+    if (curr.startsWith('-')) {
+      curr = curr.slice(1);
+    } else {
+      curr = '-' + curr;
+    }
+  } else if (key === '.') {
+    if (!curr.includes('.')) {
+      curr = (curr === '' || curr === '-') ? curr + '0.' : curr + '.';
+    }
+  } else {
+    if (curr.replace('-', '').length < 5) {
+      curr += key;
+    }
+  }
+
+  pair[inputState.activeAxis] = curr;
+  refreshInputUI();
+}
+
+function refreshInputUI() {
+  const pair = inputState.values[inputState.activeVertex];
+  document.getElementById('val-x').textContent = pair.x === '' ? '_' : pair.x;
+  document.getElementById('val-y').textContent = pair.y === '' ? '_' : pair.y;
+
+  const slotX = document.getElementById('slot-x');
+  const slotY = document.getElementById('slot-y');
+  slotX.classList.toggle('active', inputState.activeAxis === 'x');
+  slotY.classList.toggle('active', inputState.activeAxis === 'y');
+
+  // Update tab polygon jika aktif
+  const labels = ["A'", "B'", "C'"];
+  [0, 1, 2].forEach(i => {
+    const tab = document.getElementById(`vtab-${i}`);
+    if (!tab || !inputState.values[i]) return;
+    const filled = inputState.values[i].x !== '' && inputState.values[i].y !== '';
+    const isSelected = inputState.activeVertex === i;
+    tab.textContent = filled ? `${labels[i]} (${inputState.values[i].x},${inputState.values[i].y})` : `Titik ${labels[i]}`;
+    tab.className = isSelected
+      ? 'py-1 rounded-lg font-mono-code text-[11px] font-bold border border-cyan-400 bg-cyan-500/25 text-cyan-200 truncate px-1'
+      : filled
+      ? 'py-1 rounded-lg font-mono-code text-[11px] font-bold border border-emerald-500/50 bg-emerald-500/15 text-emerald-300 truncate px-1'
+      : 'py-1 rounded-lg font-mono-code text-[11px] font-bold border border-slate-700 bg-slate-900 text-slate-400 truncate px-1';
+  });
+}
+
+function triggerRadarHint() {
+  SoundFX.hint();
+  const q = gameSession.questions[gameSession.qIndex];
+  if (!gameSession.hintUsedOnCurrent && gameSession.tier > 1) {
+    if (playerState.starBits >= 5) {
+      playerState.starBits -= 5;
+      saveState();
+    }
+  }
+  gameSession.hintUsedOnCurrent = true;
+  document.getElementById('hint-message').textContent = q.formulaHint;
+  document.getElementById('hint-toast').classList.remove('hidden');
+}
+
+function hideCopilotToast() {
+  document.getElementById('copilot-toast').classList.add('hidden');
+}
+
+// ==================== 9. VALIDASI JAWABAN & AI CO-PILOT ANTI-FRUSTRASI ====================
+function parseCoordInput(str) {
+  if (str === '' || str === '-' || str === '.' || str === '-.') return null;
+  const num = Number(str);
+  return Number.isFinite(num) ? roundClean(num) : null;
+}
+
+function diagnoseMistake(q, userPts) {
+  const expected = q.mode === 'reverse' ? q.startPts[0] : q.targetPts[0];
+  const origin = q.mode === 'reverse' ? q.targetPts[0] : q.startPts[0];
+  const u = userPts[0];
+
+  if (q.mode === 'polygon') {
+    const names = ["A'", "B'", "C'"];
+    const wrongIdx = userPts.findIndex((pt, idx) =>
+      Math.abs(pt.x - q.targetPts[idx].x) > 0.05 || Math.abs(pt.y - q.targetPts[idx].y) > 0.05
+    );
+    if (wrongIdx !== -1) {
+      return `Periksa kembali koordinat titik ${names[wrongIdx]}! Pastikan setiap titik sudut segitiga dihitung dengan rumus ${q.categoryLabel} yang sama.`;
+    }
+  }
+
+  // Deteksi tertukar X dan Y
+  if (Math.abs(u.x - expected.y) < 0.05 && Math.abs(u.y - expected.x) < 0.05 && expected.x !== expected.y) {
+    return `Hampir tepat! Koordinat x' dan y' kamu tertukar posisi. Seharusnya (${expected.x}, ${expected.y}).`;
+  }
+
+  // Deteksi kesalahan spesifik per jenis transformasi
+  switch (q.rule.kind) {
+    case 'trans':
+      if (u.x === origin.x - q.rule.a || u.y === origin.y - q.rule.b) {
+        return `Perhatikan tanda pergeserannya! Translasi T(${q.rule.a}, ${q.rule.b}) berarti dijumlahkan: (${origin.x} + (${q.rule.a}), ${origin.y} + (${q.rule.b})).`;
+      }
+      break;
+    case 'ref_x':
+      if (u.x === -origin.x && u.y === origin.y) {
+        return `Tertukar cermin! Refleksi terhadap Sumbu X mempertahankan nilai x dan mengubah tanda y menjadi (x, −y).`;
+      }
+      break;
+    case 'ref_y':
+      if (u.x === origin.x && u.y === -origin.y) {
+        return `Tertukar cermin! Refleksi terhadap Sumbu Y mengubah tanda x dan mempertahankan nilai y menjadi (−x, y).`;
+      }
+      break;
+    case 'ref_xh':
+      if (u.x === q.rule.h - origin.x || u.x === 2 * q.rule.h + origin.x) {
+        return `Ingat rumus cermin garis x = ${q.rule.h}! Hitung x' = 2(${q.rule.h}) − (${origin.x}) = ${2 * q.rule.h - origin.x}, sedangkan y tetap.`;
+      }
+      break;
+    case 'ref_yh':
+      if (u.y === q.rule.h - origin.y || u.y === 2 * q.rule.h + origin.y) {
+        return `Ingat rumus cermin garis y = ${q.rule.h}! Nilai x tetap, sedangkan y' = 2(${q.rule.h}) − (${origin.y}) = ${2 * q.rule.h - origin.y}.`;
+      }
+      break;
+    case 'rot_90':
+      if (u.x === origin.y && u.y === -origin.x) {
+        return `Arah putaran terbalik! Rotasi +90° berlawanan arah jarum jam rumusnya (−y, x), bukan (y, −x).`;
+      }
+      break;
+    case 'rot_n90':
+      if (u.x === -origin.y && u.y === origin.x) {
+        return `Arah putaran terbalik! Rotasi −90° searah jarum jam rumusnya (y, −x), bukan (−y, x).`;
+      }
+      break;
+    case 'dil':
+      if (u.x === origin.x + q.rule.k || u.y === origin.y + q.rule.k) {
+        return `Jangan dijumlahkan! Pada Dilatasi skala k = ${q.rule.kLabel}, koordinat dikalikan: (${origin.x} × ${q.rule.k}, ${origin.y} × ${q.rule.k}).`;
+      }
+      if (q.rule.k < 0 && u.x === Math.abs(expected.x) && u.y === Math.abs(expected.y)) {
+        return `Hati-hati tanda negatif! Karena faktor skala k = ${q.rule.kLabel} bernilai negatif, arah bayangan berbalik kuadran.`;
+      }
+      break;
+  }
+
+  if (q.mode === 'reverse') {
+    return `Ingat, titik yang diketahui adalah bayangan A'(${origin.x}, ${origin.y}). Lakukan operasi kebalikan untuk menemukan titik awal A!`;
+  }
+
+  return `Drone memantul dari perisai di (${u.x}, ${u.y})! Cek kembali tanda positif/negatif pada rumus ${q.categoryLabel}.`;
+}
+
+function submitCoordinates() {
+  if (animState.status !== 'idle') return;
+  const q = gameSession.questions[gameSession.qIndex];
+
+  // Parse semua titik input
+  const parsedPts = [];
+  for (let i = 0; i < inputState.values.length; i++) {
+    const px = parseCoordInput(inputState.values[i].x);
+    const py = parseCoordInput(inputState.values[i].y);
+    if (px === null || py === null) {
+      SoundFX.bounceError();
+      if (q.mode === 'polygon') selectVertex(i);
+      if (px === null) setActiveAxis('x');
+      else setActiveAxis('y');
+      document.getElementById('copilot-message').textContent =
+        q.mode === 'polygon'
+          ? `Lengkapi koordinat x' dan y' untuk seluruh titik sudut segitiga (A', B', C') sebelum meluncur!`
+          : `Isi kedua kotak koordinat (x dan y) terlebih dahulu sebelum menekan LUNCURKAN!`;
+      document.getElementById('copilot-toast').classList.remove('hidden');
+      return;
+    }
+    parsedPts.push({ x: px, y: py });
+  }
+
+  // Tentukan jawaban yang diharapkan
+  const expectedPts = q.mode === 'reverse' ? q.startPts : q.targetPts;
+  const isCorrect = expectedPts.every((exp, idx) =>
+    Math.abs(exp.x - parsedPts[idx].x) < 0.05 && Math.abs(exp.y - parsedPts[idx].y) < 0.05
+  );
+
+  SoundFX.launch();
+  hideCopilotToast();
+
+  if (isCorrect) {
+    // Eksekusi terbang sukses!
+    animState.status = 'flying_success';
+    animState.progress = 0;
+
+    // Hitung Skor & Star-Bits
+    if (gameSession.attemptsOnCurrent === 0) {
+      gameSession.categoryStats[q.categoryLabel].firstTry += 1;
+      gameSession.streak += 1;
+      if (gameSession.streak > gameSession.maxStreak) gameSession.maxStreak = gameSession.streak;
+    } else {
+      gameSession.streak = 0;
+    }
+
+    const baseReward = gameSession.tier === 1 ? 15 : gameSession.tier === 2 ? 25 : 35;
+    const hintPenalty = gameSession.hintUsedOnCurrent ? 5 : 0;
+    const attemptPenalty = Math.min(10, gameSession.attemptsOnCurrent * 5);
+    const multiplier = gameSession.streak >= 3 ? 2 : 1;
+    const earned = Math.max(5, (baseReward - hintPenalty - attemptPenalty) * multiplier);
+
+    gameSession.sessionBits += earned;
+    playerState.starBits += earned;
+    saveState();
+    document.getElementById('hud-session-bits').textContent = gameSession.sessionBits;
+    updateStreakUI();
+
+    setTimeout(() => {
+      if (gameSession.streak === 3) SoundFX.hyperDrive();
+      else SoundFX.success();
+    }, 350);
+
+    setTimeout(() => {
+      if (gameSession.qIndex < gameSession.questions.length - 1) {
+        gameSession.qIndex++;
+        loadCurrentQuestion();
+      } else {
+        finishMission();
+      }
+    }, 1450);
+  } else {
+    // Jawaban Salah -> Animasi memantul + Umpan Balik AI Co-Pilot
+    gameSession.attemptsOnCurrent += 1;
+    gameSession.streak = 0;
+    updateStreakUI();
+
+    animState.status = 'flying_bounce';
+    animState.progress = 0;
+    animState.wrongTarget = { ...parsedPts[0] };
+
+    const feedback = diagnoseMistake(q, parsedPts);
+    setTimeout(() => {
+      SoundFX.bounceError();
+      spawnSparks(parsedPts[0].x, parsedPts[0].y);
+      document.getElementById('copilot-message').textContent = feedback;
+      document.getElementById('copilot-toast').classList.remove('hidden');
+    }, 450);
+  }
+}
+
+function finishMission() {
+  clearInterval(gameSession.timerInterval);
+  gameSession.active = false;
+
+  // Hitung total akurasi percobaan pertama
+  let totalQ = 0;
+  let totalFirst = 0;
+  Object.values(gameSession.categoryStats).forEach(st => {
+    totalQ += st.total;
+    totalFirst += st.firstTry;
+  });
+
+  const accPercent = totalQ > 0 ? Math.round((totalFirst / totalQ) * 100) : 100;
+  const stars = accPercent >= 85 ? 3 : accPercent >= 60 ? 2 : 1;
+
+  // Simpan bintang tertinggi & buka Tier berikutnya
+  const key = `${gameSession.sectorId}_${gameSession.tier}`;
+  if (!playerState.starsEarned[key] || stars > playerState.starsEarned[key]) {
+    playerState.starsEarned[key] = stars;
+  }
+  if (gameSession.tier < 3) {
+    const currentMax = playerState.unlockedTiers[gameSession.sectorId] || 1;
+    if (gameSession.tier + 1 > currentMax) {
+      playerState.unlockedTiers[gameSession.sectorId] = gameSession.tier + 1;
+    }
+  }
+  saveState();
+
+  // Isi Sertifikat Digital
+  const secObj = SECTORS.find(s => s.id === gameSession.sectorId);
+  const tierLabel = gameSession.tier === 1 ? 'Kadet' : gameSession.tier === 2 ? 'Navigator' : 'Komandan';
+  document.getElementById('cert-pilot-name').textContent = playerState.name;
+  document.getElementById('cert-sector-tier').textContent = `${secObj.code.replace('SEKTOR ', '')} • ${tierLabel}`;
+  document.getElementById('cert-bits-earned').textContent = `+${gameSession.sessionBits} ✦`;
+  document.getElementById('cert-stars').textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+
+  const badgeTitle =
+    stars === 3 && gameSession.tier === 3 ? 'Grandmaster Koordinat' :
+    stars === 3 ? `Ahli ${secObj.title.split(' ')[0]}` :
+    stars === 2 ? 'Navigator Kosmik Andal' : 'Kadet Penjelajah Gigih';
+  document.getElementById('cert-title-badge').textContent = badgeTitle;
+
+  const breakdownEl = document.getElementById('cert-breakdown');
+  breakdownEl.innerHTML = Object.entries(gameSession.categoryStats).map(([cat, st]) => {
+    const pct = Math.round((st.firstTry / st.total) * 100);
+    return `
+      <div class="flex items-center justify-between">
+        <span class="text-slate-200 truncate pr-2">${cat}</span>
+        <span class="font-mono-code font-bold ${pct >= 80 ? 'text-emerald-400' : 'text-amber-300'}">${pct}% (${st.firstTry}/${st.total})</span>
+      </div>
+    `;
+  }).join('');
+
+  const now = new Date();
+  document.getElementById('cert-date').textContent = `TGL: ${now.toLocaleDateString('id-ID')}`;
+
+  SoundFX.hyperDrive();
+  showScreen('screen-certificate');
+}
+
+// ==================== 10. RENDER BIDANG KARTESIUS & ANIMASI TRAJEKTORI ====================
+const cartCanvas = document.getElementById('cartesian-canvas');
+const cartCtx = cartCanvas.getContext('2d');
+
+function resizeCartesianCanvas() {
+  const wrapper = document.getElementById('canvas-wrapper');
+  if (!wrapper) return;
+  const rect = wrapper.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cartCanvas.width = rect.width * dpr;
+  cartCanvas.height = rect.height * dpr;
+  cartCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+window.addEventListener('resize', () => {
+  resizeCartesianCanvas();
+  resizeBgStars();
+});
+
+// Konversi Koordinat Kartesius <-> Pixel Layar
+function getGridMetrics() {
+  const wrapper = document.getElementById('canvas-wrapper');
+  const w = wrapper.clientWidth || 320;
+  const h = wrapper.clientHeight || 260;
+  const q = gameSession.questions[gameSession.qIndex];
+  const maxUnit = q ? q.gridMax : 7;
+  const minDim = Math.min(w, h);
+  const scale = (minDim * 0.43) / maxUnit;
+  return { w, h, cx: w / 2, cy: h / 2, scale, maxUnit };
+}
+
+function toScreen(pt, m) {
+  return {
+    sx: m.cx + pt.x * m.scale,
+    sy: m.cy - pt.y * m.scale
+  };
+}
+
+function toGrid(sx, sy, m) {
+  return {
+    x: Math.round((sx - m.cx) / m.scale),
+    y: Math.round((m.cy - sy) / m.scale)
+  };
+}
+
+// Interaksi Tap/Hover pada Canvas (Untuk Tier 1 Ghost Preview & Inspeksi Koordinat)
+function handleCanvasPointer(clientX, clientY, isTap = false) {
+  if (!gameSession.active) return;
+  const q = gameSession.questions[gameSession.qIndex];
+  if (!q) return;
+  const rect = cartCanvas.getBoundingClientRect();
+  const sx = clientX - rect.left;
+  const sy = clientY - rect.top;
+  const m = getGridMetrics();
+  const g = toGrid(sx, sy, m);
+
+  if (Math.abs(g.x) <= m.maxUnit && Math.abs(g.y) <= m.maxUnit) {
+    const readout = document.getElementById('canvas-hover-readout');
+    readout.textContent = `Radar: (${g.x}, ${g.y})`;
+    readout.classList.remove('hidden');
+
+    if (gameSession.tier === 1) {
+      animState.ghostPt = g;
+      // Jika pengguna men-tap titik di Tier 1 Kadet, otomatis bantu isi koordinat agar ramah anak!
+      if (isTap && animState.status === 'idle') {
+        SoundFX.key();
+        inputState.values[0].x = String(g.x);
+        inputState.values[0].y = String(g.y);
+        refreshInputUI();
+      }
+    }
+  }
+}
+
+cartCanvas.addEventListener('mousemove', e => handleCanvasPointer(e.clientX, e.clientY, false));
+cartCanvas.addEventListener('mouseleave', () => {
+  document.getElementById('canvas-hover-readout').classList.add('hidden');
+  animState.ghostPt = null;
+});
+cartCanvas.addEventListener('click', e => handleCanvasPointer(e.clientX, e.clientY, true));
+
+function spawnSparks(gx, gy) {
+  const m = getGridMetrics();
+  const { sx, sy } = toScreen({ x: gx, y: gy }, m);
+  for (let i = 0; i < 18; i++) {
+    const ang = (Math.PI * 2 * i) / 18;
+    const spd = 1.5 + Math.random() * 3;
+    animState.sparks.push({
+      x: sx,
+      y: sy,
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd,
+      life: 1
+    });
+  }
+}
+
+function drawDroneSprite(ctx, sx, sy, angleRad = 0, scale = 1) {
+  const hull = HULL_ITEMS.find(h => h.id === playerState.equippedHull) || HULL_ITEMS[0];
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(angleRad);
+  ctx.scale(scale, scale);
+
+  // Glow aura
+  ctx.shadowColor = hull.color;
+  ctx.shadowBlur = 12;
+
+  // Sayap
+  ctx.fillStyle = '#0f172a';
+  ctx.strokeStyle = hull.color;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(0, -8);
+  ctx.lineTo(-13, 7);
+  ctx.lineTo(-5, 9);
+  ctx.lineTo(0, 1);
+  ctx.lineTo(5, 9);
+  ctx.lineTo(13, 7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Badan Utama
+  ctx.fillStyle = hull.color;
+  ctx.beginPath();
+  ctx.moveTo(0, -13);
+  ctx.lineTo(6, 5);
+  ctx.lineTo(0, 10);
+  ctx.lineTo(-6, 5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Kokpit
+  ctx.fillStyle = '#060b19';
+  ctx.beginPath();
+  ctx.arc(0, -2, 2.6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawPortalVortex(ctx, sx, sy, time, label = "A'") {
+  ctx.save();
+  ctx.translate(sx, sy);
+
+  // Cincin portal berputar
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.arc(0, 0, 12, time * 2, time * 2 + Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Inti portal
+  const grad = ctx.createRadialGradient(0, 0, 1, 0, 0, 10);
+  grad.addColorStop(0, 'rgba(52, 211, 153, 0.9)');
+  grad.addColorStop(1, 'rgba(16, 185, 129, 0.05)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, 10, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Label titik target
+  ctx.font = 'bold 11px "JetBrains Mono", monospace';
+  ctx.fillStyle = '#6ee7b7';
+  ctx.fillText(label, 11, -9);
+
+  ctx.restore();
+}
+
+function drawMirrorOrGuide(ctx, q, m) {
+  const r = q.rule;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(232, 121, 249, 0.75)';
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash([6, 4]);
+
+  if (r.kind === 'ref_x' || r.kind === 'comp_trans_refx') {
+    ctx.beginPath();
+    ctx.moveTo(0, m.cy);
+    ctx.lineTo(m.w, m.cy);
+    ctx.stroke();
+  } else if (r.kind === 'ref_y') {
+    ctx.beginPath();
+    ctx.moveTo(m.cx, 0);
+    ctx.lineTo(m.cx, m.h);
+    ctx.stroke();
+  } else if (r.kind === 'ref_yx') {
+    const p1 = toScreen({ x: -m.maxUnit, y: -m.maxUnit }, m);
+    const p2 = toScreen({ x: m.maxUnit, y: m.maxUnit }, m);
+    ctx.beginPath();
+    ctx.moveTo(p1.sx, p1.sy);
+    ctx.lineTo(p2.sx, p2.sy);
+    ctx.stroke();
+  } else if (r.kind === 'ref_ynx') {
+    const p1 = toScreen({ x: -m.maxUnit, y: m.maxUnit }, m);
+    const p2 = toScreen({ x: m.maxUnit, y: -m.maxUnit }, m);
+    ctx.beginPath();
+    ctx.moveTo(p1.sx, p1.sy);
+    ctx.lineTo(p2.sx, p2.sy);
+    ctx.stroke();
+  } else if (r.kind === 'ref_xh') {
+    const pTop = toScreen({ x: r.h, y: m.maxUnit }, m);
+    const pBot = toScreen({ x: r.h, y: -m.maxUnit }, m);
+    ctx.beginPath();
+    ctx.moveTo(pTop.sx, pTop.sy);
+    ctx.lineTo(pBot.sx, pBot.sy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#f0abfc';
+    ctx.font = 'bold 10px "JetBrains Mono", monospace';
+    ctx.fillText(`x=${r.h}`, pTop.sx + 4, 16);
+  } else if (r.kind === 'ref_yh') {
+    const pLeft = toScreen({ x: -m.maxUnit, y: r.h }, m);
+    const pRight = toScreen({ x: m.maxUnit, y: r.h }, m);
+    ctx.beginPath();
+    ctx.moveTo(pLeft.sx, pLeft.sy);
+    ctx.lineTo(pRight.sx, pRight.sy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#f0abfc';
+    ctx.font = 'bold 10px "JetBrains Mono", monospace';
+    ctx.fillText(`y=${r.h}`, 8, pLeft.sy - 5);
+  }
+
+  ctx.restore();
+}
+
+function getTrailColor(time) {
+  const trail = TRAIL_ITEMS.find(t => t.id === playerState.equippedTrail) || TRAIL_ITEMS[0];
+  if (trail.color === 'rainbow') {
+    const hue = Math.floor((time * 180) % 360);
+    return `hsl(${hue}, 90%, 60%)`;
+  }
+  return trail.color;
+}
+
+function renderCartesianLoop(timestamp) {
+  const time = timestamp / 1000;
+  if (gameSession.active) {
+    const m = getGridMetrics();
+    const q = gameSession.questions[gameSession.qIndex];
+    cartCtx.clearRect(0, 0, m.w, m.h);
+
+    // 1. Gambar Grid Kartesius
+    const step = m.maxUnit <= 7 ? 1 : 2;
+    for (let i = -m.maxUnit; i <= m.maxUnit; i++) {
+      const xPos = m.cx + i * m.scale;
+      const yPos = m.cy - i * m.scale;
+
+      cartCtx.strokeStyle = i === 0 ? 'rgba(56, 189, 248, 0.75)' : 'rgba(30, 41, 59, 0.85)';
+      cartCtx.lineWidth = i === 0 ? 1.8 : 1;
+
+      // Garis Vertikal
+      cartCtx.beginPath();
+      cartCtx.moveTo(xPos, 0);
+      cartCtx.lineTo(xPos, m.h);
+      cartCtx.stroke();
+
+      // Garis Horizontal
+      cartCtx.beginPath();
+      cartCtx.moveTo(0, yPos);
+      cartCtx.lineTo(m.w, yPos);
+      cartCtx.stroke();
+
+      // Angka Sumbu
+      if (i !== 0 && i % step === 0) {
+        cartCtx.fillStyle = 'rgba(148, 163, 184, 0.85)';
+        cartCtx.font = '9px "JetBrains Mono", monospace';
+        cartCtx.fillText(String(i), xPos - 4, m.cy + 11);
+        cartCtx.fillText(String(i), m.cx + 5, yPos + 3);
+      }
+    }
+
+    // Label Sumbu X, Y, dan Titik Asal O
+    cartCtx.fillStyle = '#38bdf8';
+    cartCtx.font = 'bold 11px "Orbitron", sans-serif';
+    cartCtx.fillText('X', m.w - 14, m.cy - 6);
+    cartCtx.fillText('Y', m.cx + 7, 13);
+    cartCtx.fillStyle = '#94a3b8';
+    cartCtx.font = '9px "JetBrains Mono", monospace';
+    cartCtx.fillText('0', m.cx + 4, m.cy + 11);
+
+    if (q) {
+      // 2. Gambar Garis Cermin jika Refleksi
+      drawMirrorOrGuide(cartCtx, q, m);
+
+      // 3. Gambar Ghost Preview di Tier 1 (Saat kursor menyentuh grid)
+      if (gameSession.tier === 1 && animState.ghostPt && animState.status === 'idle') {
+        const gp = toScreen(animState.ghostPt, m);
+        cartCtx.save();
+        cartCtx.strokeStyle = 'rgba(34, 211, 238, 0.65)';
+        cartCtx.setLineDash([3, 3]);
+        cartCtx.beginPath();
+        cartCtx.arc(gp.sx, gp.sy, 8, 0, Math.PI * 2);
+        cartCtx.stroke();
+        cartCtx.fillStyle = 'rgba(34, 211, 238, 0.25)';
+        cartCtx.fill();
+        cartCtx.restore();
+      }
+
+      // 4. Update & Gambar Animasi Terbang Drone
+      const startSet = q.mode === 'reverse' ? q.targetPts : q.startPts;
+      const goalSet = q.mode === 'reverse' ? q.startPts : q.targetPts;
+
+      if (animState.status === 'flying_success') {
+        animState.progress = Math.min(1, animState.progress + 0.032);
+        const t = 1 - Math.pow(1 - animState.progress, 3); // Ease-out cubic
+
+        // Gambar jejak transformasi visual
+        const p0 = toScreen(startSet[0], m);
+        const p1 = toScreen(goalSet[0], m);
+        const currX = p0.sx + (p1.sx - p0.sx) * t;
+        const currY = p0.sy + (p1.sy - p0.sy) * t;
+
+        cartCtx.save();
+        cartCtx.strokeStyle = getTrailColor(time);
+        cartCtx.lineWidth = 2.8;
+        cartCtx.shadowColor = getTrailColor(time);
+        cartCtx.shadowBlur = 10;
+
+        if (q.sectorId === 'gamma') {
+          // Busur lingkaran untuk Rotasi
+          const r = Math.hypot(p0.sx - m.cx, p0.sy - m.cy);
+          const angStart = Math.atan2(p0.sy - m.cy, p0.sx - m.cx);
+          const angEnd = Math.atan2(p1.sy - m.cy, p1.sx - m.cx);
+          cartCtx.beginPath();
+          cartCtx.arc(m.cx, m.cy, r, angStart, angEnd, q.rule.kind === 'rot_90');
+          cartCtx.stroke();
+        } else if (q.sectorId === 'delta') {
+          // Garis pancaran dari pusat O(0,0) untuk Dilatasi
+          cartCtx.setLineDash([4, 4]);
+          cartCtx.beginPath();
+          cartCtx.moveTo(m.cx, m.cy);
+          cartCtx.lineTo(currX, currY);
+          cartCtx.stroke();
+        } else {
+          // Garis vektor / cermin
+          cartCtx.setLineDash(q.sectorId === 'beta' ? [5, 4] : []);
+          cartCtx.beginPath();
+          cartCtx.moveTo(p0.sx, p0.sy);
+          cartCtx.lineTo(currX, currY);
+          cartCtx.stroke();
+        }
+        cartCtx.restore();
+
+        // Update semua titik bangun jika polygon
+        animState.dronePts = startSet.map((sp, idx) => ({
+          x: sp.x + (goalSet[idx].x - sp.x) * t,
+          y: sp.y + (goalSet[idx].y - sp.y) * t
+        }));
+      } else if (animState.status === 'flying_bounce' && animState.wrongTarget) {
+        animState.progress += 0.04;
+        if (animState.progress >= 1) {
+          animState.status = 'idle';
+          animState.progress = 0;
+          animState.dronePts = startSet.map(p => ({ ...p }));
+        } else {
+          // Maju ke titik salah pada 0..0.5 lalu memantul kembali pada 0.5..1
+          const phase = animState.progress < 0.5
+            ? animState.progress * 2
+            : (1 - animState.progress) * 2;
+          const sp = startSet[0];
+          const wp = animState.wrongTarget;
+          animState.dronePts[0] = {
+            x: sp.x + (wp.x - sp.x) * phase,
+            y: sp.y + (wp.y - sp.y) * phase
+          };
+
+          const s0 = toScreen(sp, m);
+          const sw = toScreen(animState.dronePts[0], m);
+          cartCtx.save();
+          cartCtx.strokeStyle = '#fb7185';
+          cartCtx.lineWidth = 2;
+          cartCtx.setLineDash([4, 3]);
+          cartCtx.beginPath();
+          cartCtx.moveTo(s0.sx, s0.sy);
+          cartCtx.lineTo(sw.sx, sw.sy);
+          cartCtx.stroke();
+          cartCtx.restore();
+        }
+      }
+
+      // 5. Gambar Bangun Segitiga jika Mode Polygon
+      if (q.mode === 'polygon') {
+        // Bayangan Portal Segitiga Target (samar sebagai petunjuk visual)
+        cartCtx.save();
+        cartCtx.strokeStyle = 'rgba(16, 185, 129, 0.35)';
+        cartCtx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+        cartCtx.setLineDash([4, 4]);
+        cartCtx.beginPath();
+        q.targetPts.forEach((tp, idx) => {
+          const { sx, sy } = toScreen(tp, m);
+          if (idx === 0) cartCtx.moveTo(sx, sy);
+          else cartCtx.lineTo(sx, sy);
+        });
+        cartCtx.closePath();
+        cartCtx.fill();
+        cartCtx.stroke();
+        cartCtx.restore();
+
+        // Segitiga Drone Aktif
+        cartCtx.save();
+        cartCtx.strokeStyle = '#38bdf8';
+        cartCtx.fillStyle = 'rgba(56, 189, 248, 0.18)';
+        cartCtx.lineWidth = 2;
+        cartCtx.beginPath();
+        animState.dronePts.forEach((dp, idx) => {
+          const { sx, sy } = toScreen(dp, m);
+          if (idx === 0) cartCtx.moveTo(sx, sy);
+          else cartCtx.lineTo(sx, sy);
+        });
+        cartCtx.closePath();
+        cartCtx.fill();
+        cartCtx.stroke();
+        cartCtx.restore();
+
+        const names = ['A', 'B', 'C'];
+        animState.dronePts.forEach((dp, idx) => {
+          const { sx, sy } = toScreen(dp, m);
+          drawDroneSprite(cartCtx, sx, sy, 0, 0.72);
+          cartCtx.fillStyle = '#e0f2fe';
+          cartCtx.font = 'bold 10px "JetBrains Mono", monospace';
+          cartCtx.fillText(`${names[idx]}(${Math.round(dp.x)},${Math.round(dp.y)})`, sx + 8, sy - 6);
+        });
+      } else {
+        // Mode Titik Tunggal: Gambar Portal jika sudah terbang sukses atau pada Tier 1
+        if (animState.status === 'flying_success') {
+          const { sx, sy } = toScreen(goalSet[0], m);
+          drawPortalVortex(cartCtx, sx, sy, time, q.mode === 'reverse' ? 'A' : "A'");
+        }
+
+        // Gambar Titik Awal & Drone
+        const startScreen = toScreen(startSet[0], m);
+        cartCtx.fillStyle = 'rgba(56, 189, 248, 0.45)';
+        cartCtx.beginPath();
+        cartCtx.arc(startScreen.sx, startScreen.sy, 4, 0, Math.PI * 2);
+        cartCtx.fill();
+
+        const droneScreen = toScreen(animState.dronePts[0], m);
+        drawDroneSprite(cartCtx, droneScreen.sx, droneScreen.sy, 0, 0.95);
+
+        // Label koordinat titik awal
+        const ptLabel = q.mode === 'reverse'
+          ? `A'(${startSet[0].x},${startSet[0].y})`
+          : `A(${startSet[0].x},${startSet[0].y})`;
+        cartCtx.fillStyle = '#bae6fd';
+        cartCtx.font = 'bold 11px "JetBrains Mono", monospace';
+        cartCtx.fillText(ptLabel, startScreen.sx + 10, startScreen.sy - 8);
+      }
+
+      // 6. Gambar Percikan Tabrakan (Sparks)
+      animState.sparks = animState.sparks.filter(sp => sp.life > 0);
+      animState.sparks.forEach(sp => {
+        sp.x += sp.vx;
+        sp.y += sp.vy;
+        sp.life -= 0.04;
+        cartCtx.fillStyle = `rgba(251, 113, 133, ${sp.life})`;
+        cartCtx.beginPath();
+        cartCtx.arc(sp.x, sp.y, 2.5, 0, Math.PI * 2);
+        cartCtx.fill();
+      });
+    }
+  }
+  requestAnimationFrame(renderCartesianLoop);
+}
+
+// ==================== 11. ANIMASI BINTANG LATAR MENU ====================
+const bgCanvas = document.getElementById('bg-stars-canvas');
+const bgCtx = bgCanvas.getContext('2d');
+let bgStars = [];
+
+function resizeBgStars() {
+  const shell = document.getElementById('app-shell');
+  if (!shell) return;
+  bgCanvas.width = shell.clientWidth;
+  bgCanvas.height = shell.clientHeight;
+  bgStars = Array.from({ length: 42 }, () => ({
+    x: Math.random() * bgCanvas.width,
+    y: Math.random() * bgCanvas.height,
+    r: 0.6 + Math.random() * 1.4,
+    spd: 0.15 + Math.random() * 0.45,
+    alpha: 0.3 + Math.random() * 0.7
+  }));
+}
+
+function animateBgStars() {
+  bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+  bgStars.forEach(s => {
+    s.y += s.spd;
+    if (s.y > bgCanvas.height) {
+      s.y = 0;
+      s.x = Math.random() * bgCanvas.width;
+    }
+    bgCtx.fillStyle = `rgba(186, 230, 253, ${s.alpha})`;
+    bgCtx.beginPath();
+    bgCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    bgCtx.fill();
+  });
+  requestAnimationFrame(animateBgStars);
+}
+
+// ==================== 12. INISIALISASI APLIKASI ====================
+window.onload = function () {
+  loadState();
+  resizeBgStars();
+  animateBgStars();
+  requestAnimationFrame(renderCartesianLoop);
+};
+</script>
+</body>
+</html>
