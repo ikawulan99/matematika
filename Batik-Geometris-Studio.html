@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Batik Geometris Studio</title>
+<style>
+:root{--bg:#faf6ee;--fg:#3b2a1a;--card:#fff;--ac:#8f1d2c;--acf:#fff;--bd:#e0d3bd;--hero:#8f1d2c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1812;--fg:#f1e7d6;--card:#2a2219;--ac:#e08a97;--acf:#1d1812;--bd:#4a3d2e;--hero:#6e1422}}
+:root[data-theme="dark"]{--bg:#1d1812;--fg:#f1e7d6;--card:#2a2219;--ac:#e08a97;--acf:#1d1812;--bd:#4a3d2e;--hero:#6e1422}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:560px;margin:0 auto;padding:10px}
+.hero{position:relative;container-type:inline-size;border-radius:16px;overflow:hidden;margin:2px 0 0;box-shadow:0 3px 10px rgba(80,10,25,.28)}
+.hbg{display:block;width:100%;height:auto;aspect-ratio:560/170}.hbg .bgr{fill:var(--hero)}
+.ht{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#f7e3e6;font-family:Georgia,"Times New Roman",serif;padding:0 20%}
+.ht h1{margin:0;display:flex;flex-direction:column;align-items:center;font-weight:700;letter-spacing:0;line-height:1.05;text-shadow:0 2px 4px rgba(0,0,0,.35)}
+.ht .k{font-size:4.6cqw;letter-spacing:.09em;white-space:nowrap}
+.ht .s{display:flex;align-items:center;gap:2.2cqw;font-size:7.6cqw;letter-spacing:.2em;margin-top:.6cqw;padding-left:.2em}
+.ht .s i{display:block;width:6cqw;height:1.2cqw;border-top:1.5px solid #f7e3e6;border-bottom:1.5px solid #f7e3e6;opacity:.85}
+.ht p{margin:1.6cqw 0 0;font-size:max(10px,2.6cqw);font-style:italic;letter-spacing:.04em;opacity:.95;white-space:nowrap}
+.strip{height:12px;margin:0 0 4px;border-radius:0 0 8px 8px;opacity:.9;background:var(--hero) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12'%3E%3Cpath d='M12 1.5 L19 6 L12 10.5 L5 6Z' fill='none' stroke='%23f7e3e6' stroke-width='1.2'/%3E%3Ccircle cx='0' cy='6' r='1.3' fill='%23f7e3e6'/%3E%3Ccircle cx='24' cy='6' r='1.3' fill='%23f7e3e6'/%3E%3C/svg%3E") repeat-x center}
+.inf{position:absolute;top:10px;right:10px;width:26px;height:26px;min-height:0;padding:0;border-radius:50%;background:rgba(247,227,230,.15);color:#f7e3e6;border:1.5px solid #f7e3e6;font:italic 700 16px/1 Georgia,serif;display:flex;align-items:center;justify-content:center;z-index:2}
+#ib{display:none;position:fixed;inset:0;z-index:30;background:rgba(30,5,10,.6);align-items:center;justify-content:center;padding:20px}
+#ib .bx{position:relative;width:100%;max-width:340px;background:var(--card);color:var(--fg);border:2px solid var(--hero);border-radius:16px;padding:22px 20px 18px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+#ib .bx::before{content:"";position:absolute;inset:5px;border:1.5px dotted var(--ac);border-radius:11px;pointer-events:none;opacity:.7}
+#ib h2{margin:0 0 2px;font:700 18px Georgia,serif;letter-spacing:.06em;color:var(--ac)}
+#ib .v{display:inline-block;margin:8px 0 12px;padding:2px 14px;border-radius:99px;background:var(--hero);color:#f7e3e6;font-size:13px;letter-spacing:.08em}
+#ib .d{font-size:12px;opacity:.75;margin:0}#ib .n{font:700 16px Georgia,serif;margin:2px 0 14px}
+.strip.bt{margin:12px 0 0;border-radius:8px}
+small{opacity:.75}
+canvas{width:100%;height:auto;aspect-ratio:1;border:1px solid var(--bd);border-radius:10px;touch-action:none;display:block;margin:8px 0}
+.tabs{display:flex;gap:4px;overflow-x:auto}.tabs button{flex:1;white-space:nowrap}
+button,select,input{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px;min-height:40px}
+button{cursor:pointer}button.on,button.pri{background:var(--ac);color:var(--acf);border-color:var(--ac)}
+section{display:none;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px;margin-top:8px}
+section.on{display:block}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+.row label{display:flex;align-items:center;gap:4px}
+select.cs{font-weight:600}input[type=number]{width:72px}input[type=color]{width:44px;padding:2px}
+#info{margin-top:8px;font-size:14px}
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:20;padding:16px;overflow:auto;text-align:center;color:#fff}
+#ov img{max-width:100%;border-radius:8px;background:#fff}
+</style></head><body>
+<header class="hero"><svg class="hbg" viewBox="0 0 560 170" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+<defs>
+<pattern id="dm" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M14 3 L25 14 L14 25 L3 14Z" fill="none" stroke="#f7e3e6" stroke-opacity=".13" stroke-width="1.2"/><circle cx="14" cy="14" r="1.6" fill="#f7e3e6" fill-opacity=".16"/><circle cx="0" cy="0" r="1.6" fill="#f7e3e6" fill-opacity=".16"/><circle cx="28" cy="28" r="1.6" fill="#f7e3e6" fill-opacity=".16"/></pattern>
+<g id="ros" fill="none" stroke="#f7e3e6" stroke-linecap="round"><circle r="26" stroke-width="2.4"/><circle r="21.5" stroke-width="2" stroke-dasharray="0.1 4.6"/><path d="M0.0 0.0 L0.2 0.0 L0.4 0.1 L0.6 0.3 L0.7 0.5 L0.8 0.8 L0.7 1.0 L0.7 1.3 L0.5 1.6 L0.3 1.9 L0.0 2.1 L-0.4 2.3 L-0.8 2.4 L-1.3 2.5 L-1.7 2.4 L-2.3 2.3 L-2.8 2.0 L-3.2 1.6 L-3.6 1.2 L-4.0 0.6 L-4.2 0.0 L-4.4 -0.7 L-4.4 -1.4 L-4.4 -2.2 L-4.1 -3.0 L-3.8 -3.8 L-3.2 -4.5 L-2.6 -5.1 L-1.8 -5.7 L-1.0 -6.1 L-0.0 -6.4 L1.0 -6.5 L2.1 -6.5 L3.2 -6.2 L4.2 -5.8 L5.3 -5.3 L6.2 -4.5 L7.0 -3.6 L7.7 -2.5 L8.2 -1.3 L8.5 -0.0 L8.6 1.4 L8.5 2.8 L8.1 4.1 L7.6 5.5 L6.8 6.8 L5.7 7.9 L4.5 8.9 L3.2 9.7 L1.6 10.3 L0.0 10.6 L-1.7 10.7 L-3.4 10.5 L-5.1 10.0 L-6.7 9.3 L-8.3 8.3 L-9.6 7.0 L-10.8 5.5 L-11.7 3.8 L-12.4 2.0 L-12.8 0.0 L-12.8 -2.0 L-12.5 -4.1 L-11.9 -6.1 L-11.0 -8.0 L-9.8 -9.8 L-8.2 -11.3 L-6.5 -12.7 L-4.5 -13.7 L-2.3 -14.5 L-0.0 -14.9 L2.4 -14.9 L4.7 -14.6 L7.0 -13.8 L9.2 -12.7 L11.3 -11.3 L13.1 -9.5 L14.6 -7.4 L15.8 -5.1 L16.6 -2.6 L17.0 -0.0" stroke-width="2.2"/><path d="M-24 -3 L-14 -14 L-17 -3" stroke-width="1.6"/></g>
+<g id="lf" fill="none" stroke="#f7e3e6" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M0 0 C16 -10 16 -32 0 -46 C-16 -32 -16 -10 0 0Z"/><path d="M0 2 V-44"/><path d="M0 -8 L9 -15 M0 -8 L-9 -15 M0 -17 L11 -25 M0 -17 L-11 -25 M0 -26 L9 -33 M0 -26 L-9 -33 M0 -35 L5 -39 M0 -35 L-5 -39"/></g>
+<g id="side">
+<use href="#ros" transform="translate(62 85) scale(1.25)"/>
+<use href="#lf" transform="translate(62 52) rotate(-38) scale(.58)"/>
+<use href="#lf" transform="translate(62 52) rotate(38) scale(.58)"/>
+<use href="#lf" transform="translate(62 118) rotate(142) scale(.58)"/>
+<use href="#lf" transform="translate(62 118) rotate(218) scale(.58)"/>
+<path d="M20 85 L24 80 L28 85 L24 90Z" fill="#f7e3e6"/>
+<path d="M104 24 H140 M104 146 H140" stroke="#f7e3e6" stroke-width="1.6" stroke-dasharray="0.1 5" stroke-linecap="round"/>
+</g>
+</defs>
+<rect class="bgr" width="560" height="170"/><rect width="560" height="170" fill="url(#dm)"/>
+<rect x="8" y="8" width="544" height="154" rx="12" fill="none" stroke="#f7e3e6" stroke-opacity=".7" stroke-width="1.5"/>
+<rect x="14" y="14" width="532" height="142" rx="9" fill="none" stroke="#f7e3e6" stroke-opacity=".5" stroke-width="1.5" stroke-dasharray="0.1 5" stroke-linecap="round"/>
+<use href="#side"/><use href="#side" transform="translate(560 0) scale(-1 1)"/>
+</svg>
+<button class="inf" id="ibtn" aria-label="Informasi aplikasi" title="Informasi">i</button>
+<div class="ht"><h1><span class="k">BATIK GEOMETRIS</span><span class="s"><i></i>STUDIO<i></i></span></h1><p>Transformasikan Motif, Ciptakan Batikmu!</p></div></header>
+<div class="strip"></div>
+<canvas id="cv" width="720" height="720"></canvas>
+<div class="row" id="bar" style="display:none"><b id="bl"></b><button id="bdel">Hapus</button><button id="bhid">Sembunyikan</button><label>Warna <select id="oc" class="cs"></select></label><button id="bup">Maju</button><button id="bdn">Mundur</button><span id="bsz" style="display:none;gap:6px"><button id="bbg">Perbesar ＋</button><button id="bkc">Perkecil －</button></span></div>
+<div class="row"><button id="und">↶ Undo</button><button id="rst">Reset</button><button id="shw">Tampilkan semua</button><button id="png" class="pri">Simpan PNG</button></div>
+<div class="tabs"><button data-t="m" class="on">Motif</button><button data-t="t">Transformasi</button><button data-t="w">Warna</button></div>
+
+<section id="m" class="on">
+<b>Motif siap pakai</b>
+<div class="row" id="pre"></div>
+<div class="row"><button id="del">Hapus motif aktif</button></div>
+<small>Tambahkan beberapa motif sekaligus. Ketuk motif di kanvas untuk memilihnya (garis putus-putus merah), lalu gunakan bilah pilihan di bawah kanvas: hapus, sembunyikan, ganti warna, maju/mundur, dan perbesar/perkecil (khusus motif asli; di komputer bisa juga dengan roda mouse). Motif aktif dipakai oleh Transformasi.</small>
+<b>Motif bebas</b>
+<div class="row"><button id="fr">Mulai gambar</button><button id="fin">Selesai</button><button id="clr">Hapus titik</button></div>
+<small>Ketuk kanvas untuk menambah titik (kelipatan 0,5). Minimal 3 titik, lalu tekan Selesai.</small>
+</section>
+
+<section id="t">
+<div class="row"><select id="tt"><option value="translasi">Translasi</option><option value="refleksi">Refleksi</option><option value="rotasi">Rotasi</option><option value="dilatasi">Dilatasi</option></select>
+<select id="src"><option value="act">dari motif aktif</option><option value="all">dari semua motif asli</option><option value="last">dari hasil terakhir</option></select></div>
+<div class="row p translasi"><label>a <input id="ta" type="number" step="any" value="3"></label><label>b <input id="tb" type="number" step="any" value="2"></label></div>
+<div class="row p refleksi"><select id="rm"><option value="x">Sumbu X</option><option value="y">Sumbu Y</option><option value="yx">Garis y = x</option><option value="ymx">Garis y = −x</option><option value="o">Titik pusat O</option></select></div>
+<div class="row p rotasi"><label>Sudut <input id="ra" type="number" step="any" value="90"></label><select id="rd"><option value="ccw">berlawanan jarum jam</option><option value="cw">searah jarum jam</option></select>
+<span>Pusat</span><input id="rcx" type="number" step="any" value="0"><input id="rcy" type="number" step="any" value="0"></div>
+<div class="row p dilatasi"><label>k <input id="dk" type="number" step="any" value="2"></label><span>Pusat</span><input id="dcx" type="number" step="any" value="0"><input id="dcy" type="number" step="any" value="0"></div>
+<div class="row"><button id="ap" class="pri">Terapkan</button></div>
+<div id="info"></div>
+</section>
+
+<section id="w">
+<div class="row"><label>Latar <select id="bg" class="cs"></select></label><label>Garis tepi <select id="sc" class="cs"></select></label><label>Tebal <input id="lw" type="number" min="0" max="8" step=".5" value="2"></label></div>
+<div class="row"><label>Transparansi <input id="al" type="range" min=".2" max="1" step=".05" value=".85"></label></div>
+<div class="row"><label><input id="gd" type="checkbox" checked> Grid dan sumbu</label><label><input id="bw" type="checkbox"> Hitam putih</label></div>
+<small>Warna otomatis: asli biru, translasi hijau, refleksi merah, rotasi kuning, dilatasi ungu.</small>
+</section>
+
+<div class="strip bt"></div>
+<div id="ib" role="dialog" aria-modal="true" aria-label="Informasi aplikasi"><div class="bx"><h2>BATIK GEOMETRIS STUDIO</h2><small>Transformasikan Motif, Ciptakan Batikmu!</small><br><span class="v">Versi 1</span><p class="d">Pengembang</p><p class="n">Ika Wulan Y.I., S.Si.</p><button id="icl" class="pri">Tutup</button></div></div>
+<div id="ov"><p>Tekan lama gambar lalu pilih <b>Simpan gambar</b>.</p><img id="out" alt="Hasil batik"><p><a id="dl" download="batik-geometris.png" style="color:#fff">Unduh PNG</a> · <button id="cls">Tutup</button></p></div>
+
+<script>
+const $=id=>document.getElementById(id),cv=$('cv'),cx=cv.getContext('2d'),S=40,W=720;
+let objs=[],hist=[],pts=[],free=false;
+const WARNA=[['Hitam','#000000'],['Putih','#ffffff'],['Merah','#dc2626'],['Kuning','#eab308'],['Biru','#2563eb'],['Hijau','#16a34a'],['Ungu','#9333ea'],['Pink','#ec4899'],['Coklat tua','#5c3317'],['Coklat muda','#b8865b']];
+function csTint(e){e.style.color=e.value=='#ffffff'?'inherit':e.value}
+document.querySelectorAll('select.cs').forEach(e=>{WARNA.forEach(w=>{const o=document.createElement('option');o.value=w[1];o.textContent=(w[1]=='#ffffff'?'□ ':'■ ')+w[0];if(w[1]!='#ffffff')o.style.color=w[1];e.appendChild(o)});e.addEventListener('change',()=>csTint(e))});
+$('oc').value='#2563eb';$('bg').value='#ffffff';$('sc').value='#5c3317';document.querySelectorAll('select.cs').forEach(csTint);
+const COL={asli:'#2563eb',translasi:'#16a34a',refleksi:'#dc2626',rotasi:'#eab308',dilatasi:'#9333ea'};
+const poly=(n,r,a0,x,y)=>Array.from({length:n},(_,i)=>{const a=a0+2*Math.PI*i/n;return[x+r*Math.cos(a),y+r*Math.sin(a)]});
+const R6=v=>+v.toFixed(6);
+function arc(cx,cy,r,a0,a1,n,ctr){const P=[];for(let i=0;i<=n;i++){const a=a0+(a1-a0)*i/n;P.push([R6(cx+r*Math.cos(a)),R6(cy+r*Math.sin(a))])}if(ctr)P.push([cx,cy]);return P}
+const PRE={Segitiga:()=>[[1,1],[5,1],[3,4]],Persegi:()=>[[1,1],[4,1],[4,4],[1,4]],'Persegi panjang':()=>[[1,1],[5,1],[5,3],[1,3]],'Belah ketupat':()=>[[3,4],[4,2],[3,0],[2,2]],'Segi enam':()=>poly(6,2,0,3,2),Lingkaran:()=>poly(48,2,0,3,2).map(p=>[R6(p[0]),R6(p[1])]),'Setengah lingkaran':()=>arc(3,1,2,0,Math.PI,24,false),'Seperempat lingkaran':()=>arc(1,1,3,0,Math.PI/2,16,true),Daun:()=>{const n=16,R=[],L=[];for(let i=0;i<=n;i++){const t=i/n,w=1.2*Math.pow(Math.sin(Math.PI*t),.85),y=4*t;R.push([R6(3+w),R6(y)]);if(i&&i<n)L.unshift([R6(3-w),R6(y)])}return R.concat(L)},Garis:()=>[[1,2.88],[5,2.88],[5,3.12],[1,3.12]],Bintang:()=>Array.from({length:10},(_,i)=>{const a=-Math.PI/2+Math.PI*i/5,r=i%2?.9:2.2;return[3+r*Math.cos(a),2+r*Math.sin(a)]})};
+const f=n=>(+n.toFixed(2)).toString().replace('.',',');
+const g=k=>+$(k).value||0;
+function save(){hist.push(JSON.stringify(objs))}
+let act=-1;
+const SLOT=[[0,0],[-6,0],[-6,-4],[0,-4],[-3,-2]];
+function addBase(p,shift){save();const n=objs.filter(o=>o.t=='asli').length,d=shift?SLOT[n%5]:[0,0];
+ objs.push({pts:p.map(q=>[q[0]+d[0],q[1]+d[1]]),c:COL.asli,t:'asli'});act=objs.length-1;$('info').innerHTML='';render()}
+function base(){return objs[act]&&objs[act].t=='asli'?objs[act]:objs.find(o=>o.t=='asli')}
+function inside(P,x,y){let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){if((P[i][1]>y)!=(P[j][1]>y)&&x<(P[j][0]-P[i][0])*(y-P[i][1])/(P[j][1]-P[i][1])+P[i][0])c=!c}return c}
+for(const k in PRE){const b=document.createElement('button');b.textContent=k;b.onclick=()=>addBase(PRE[k](),true);$('pre').appendChild(b)}
+function tf(t,p){
+ if(t=='translasi')return[p[0]+g('ta'),p[1]+g('tb')];
+ if(t=='refleksi'){const m=$('rm').value;return m=='x'?[p[0],-p[1]]:m=='y'?[-p[0],p[1]]:m=='yx'?[p[1],p[0]]:m=='ymx'?[-p[1],-p[0]]:[-p[0],-p[1]]}
+ if(t=='rotasi')return rot(p,g('ra')*Math.PI/180*($('rd').value=='ccw'?1:-1),g('rcx'),g('rcy'));
+ const k=$('dk').value===''?1:+$('dk').value,c=g('dcx'),d=g('dcy');return[c+k*(p[0]-c),d+k*(p[1]-d)]}
+function rot(p,a,c,d){const x=p[0]-c,y=p[1]-d;return[c+x*Math.cos(a)-y*Math.sin(a),d+x*Math.sin(a)+y*Math.cos(a)]}
+const RULE={translasi:()=>`(x, y) → (x + ${f(g('ta'))}, y + ${f(g('tb'))})`,refleksi:()=>({x:'(x, y) → (x, −y)',y:'(x, y) → (−x, y)',yx:'(x, y) → (y, x)',ymx:'(x, y) → (−y, −x)',o:'(x, y) → (−x, −y)'})[$('rm').value],rotasi:()=>{const a=g('rcx'),b=g('rcy'),sg=$('rd').value=='ccw'?1:-1,th=sg*g('ra'),m=((th%360)+360)%360,O=a===0&&b===0,A=f(a),B=f(b),pu=`pusat (${A}, ${B})`;
+  const sp={90:['90° berlawanan arah jarum jam',O?'(x, y) → (−y, x)':`(x, y) → (${A} − (y − ${B}), ${B} + (x − ${A}))`],180:['180°',O?'(x, y) → (−x, −y)':`(x, y) → (2·${A} − x, 2·${B} − y)`],270:['270° berlawanan arah jarum jam (sama dengan −90°)',O?'(x, y) → (y, −x)':`(x, y) → (${A} + (y − ${B}), ${B} − (x − ${A}))`]};
+  if(Math.abs(m-Math.round(m))<1e-9&&sp[Math.round(m)]){const r=Math.round(m),q=sp[r];return `${q[1]} (rotasi ${q[0]}, ${O?'pusat O(0, 0)':pu})`}
+  return `x′ = a + (x−a)cosθ − (y−b)sinθ; y′ = b + (x−a)sinθ + (y−b)cosθ, θ = ${sg>0?'':'−'}${f(g('ra'))}°, ${pu}`},dilatasi:()=>`x′ = a + k(x−a); y′ = b + k(y−b), k = ${f($('dk').value===''?1:+$('dk').value)}, pusat (${f(g('dcx'))}, ${f(g('dcy'))})`};
+const SIFAT={dilatasi:'Bentuk tetap, ukuran berubah sebanding faktor k.',translasi:'Bentuk dan ukuran tetap (kongruen).',refleksi:'Bentuk dan ukuran tetap (kongruen), orientasi terbalik.',rotasi:'Bentuk dan ukuran tetap (kongruen).'};
+function apply(){
+ const t=$('tt').value,v=$('src').value,ss=v=='all'?objs.filter(o=>o.t=='asli'):v=='last'?[objs[objs.length-1]]:[base()],s=ss[0];if(!s)return alert('Pilih motif dulu.');
+ save();let np;ss.forEach((o,i)=>{const q=o.pts.map(p=>tf(t,p));if(!i)np=q;objs.push({pts:q,c:COL[t],t})});
+ $('info').innerHTML=`<b>${t[0].toUpperCase()+t.slice(1)}</b><br>Titik A (${f(s.pts[0][0])}, ${f(s.pts[0][1])}) → A′ (${f(np[0][0])}, ${f(np[0][1])})<br>Aturan: ${RULE[t]()}<br>Sifat: ${SIFAT[t]}`;render()}
+function render(ctx=cx,gridOn=$('gd').checked){
+ const X=x=>W/2+x*S,Y=y=>W/2-y*S;
+ ctx.globalAlpha=1;ctx.fillStyle=$('bg').value;ctx.fillRect(0,0,W,W);
+ if(gridOn){ctx.strokeStyle='rgba(120,100,70,.25)';ctx.lineWidth=1;ctx.beginPath();
+  for(let i=-9;i<=9;i++){ctx.moveTo(X(i),0);ctx.lineTo(X(i),W);ctx.moveTo(0,Y(i));ctx.lineTo(W,Y(i))}ctx.stroke();
+  ctx.strokeStyle='rgba(60,40,20,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,Y(0));ctx.lineTo(W,Y(0));ctx.moveTo(X(0),0);ctx.lineTo(X(0),W);ctx.stroke();
+  ctx.fillStyle='rgba(60,40,20,.8)';ctx.font='15px sans-serif';
+  for(let i=-8;i<=8;i+=2){if(i){ctx.fillText(i,X(i)-4,Y(0)+16);ctx.fillText(i,X(0)+5,Y(i)+5)}}}
+ ctx.lineJoin='round';
+ objs.forEach((o,i)=>{if(o.h)return;ctx.beginPath();o.pts.forEach((p,j)=>j?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.closePath();
+  ctx.globalAlpha=+$('al').value;ctx.fillStyle=$('bw').checked?(i%2?'#000':'#fff'):o.c;ctx.fill();
+  ctx.globalAlpha=1;ctx.lineWidth=+$('lw').value;ctx.strokeStyle=$('bw').checked?'#000':$('sc').value;if(ctx.lineWidth)ctx.stroke()});
+ const A=sel||(objs[act]&&objs[act].t=='asli'&&objs.filter(o=>o.t=='asli').length>1?objs[act]:null);if(ctx===cx&&A&&!A.h){ctx.save();ctx.setLineDash([8,6]);ctx.strokeStyle='#d33';ctx.lineWidth=3;ctx.beginPath();A.pts.forEach((p,j)=>j?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.closePath();ctx.stroke();ctx.restore()}
+ if(gridOn&&pts.length){ctx.fillStyle='#d33';ctx.strokeStyle='#d33';ctx.lineWidth=2;ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.stroke();
+  pts.forEach(p=>{ctx.beginPath();ctx.arc(X(p[0]),Y(p[1]),5,0,7);ctx.fill()})}}
+cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect();
+ const x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*W;
+ if(!free){const i=hit((x-W/2)/S,(W/2-y)/S);select(i);return}
+ pts.push([Math.round((x-W/2)/S*2)/2,Math.round((W/2-y)/S*2)/2]);render()});
+let sel=null,cs=false;
+function hit(u,w){for(let i=objs.length-1;i>=0;i--)if(!objs[i].h&&inside(objs[i].pts,u,w))return i;return -1}
+function select(i){sel=i>=0?objs[i]:null;if(sel&&sel.t=='asli')act=i;bar();render()}
+function bar(){$('bar').style.display=sel?'flex':'none';if(sel){$('bl').textContent=sel.t=='asli'?'Motif asli':'Hasil '+sel.t;$('oc').value=sel.c;csTint($('oc'));$('bsz').style.display=sel.t=='asli'?'inline-flex':'none'}}
+function mv(d){if(!sel)return;const i=objs.indexOf(sel);let j=i+d;while(objs[j]&&objs[j].h)j+=d;if(!objs[j])return;save();const a=objs[act];[objs[i],objs[j]]=[objs[j],objs[i]];act=objs.indexOf(a);render()}
+$('bdel').onclick=()=>{if(!sel)return;save();objs.splice(objs.indexOf(sel),1);sel=null;act=objs.findIndex(o=>o.t=='asli');bar();render()};
+$('bhid').onclick=()=>{if(!sel)return;save();sel.h=true;sel=null;bar();render()};
+function sz(k){if(!sel||sel.t!='asli')return;save();const xs=sel.pts.map(p=>p[0]),ys=sel.pts.map(p=>p[1]),cx0=(Math.min(...xs)+Math.max(...xs))/2,cy0=(Math.min(...ys)+Math.max(...ys))/2;
+ sel.pts=sel.pts.map(p=>[R6(cx0+k*(p[0]-cx0)),R6(cy0+k*(p[1]-cy0))]);render()}
+$('bbg').onclick=()=>sz(1.15);$('bkc').onclick=()=>sz(1/1.15);
+cv.addEventListener('wheel',e=>{if(sel&&sel.t=='asli'&&!free){e.preventDefault();sz(e.deltaY<0?1.08:1/1.08)}},{passive:false});
+$('bup').onclick=()=>mv(1);$('bdn').onclick=()=>mv(-1);
+$('oc').oninput=e=>{if(!sel)return;if(!cs){save();cs=true}sel.c=e.target.value;render()};
+$('oc').onchange=()=>{cs=false};
+$('shw').onclick=()=>{save();objs.forEach(o=>delete o.h);render()};
+let drag=null;
+function uv(e){const r=cv.getBoundingClientRect();return[((e.clientX-r.left)/r.width*W-W/2)/S,(W/2-(e.clientY-r.top)/r.height*W)/S]}
+cv.addEventListener('pointerdown',e=>{if(free)return;const[u,w]=uv(e),i=hit(u,w);if(i>=0&&objs[i].t=='asli'){act=i;save();drag={i,u,w,m:false};cv.setPointerCapture(e.pointerId)}});
+cv.addEventListener('pointermove',e=>{if(!drag)return;const[u,w]=uv(e),dx=Math.round(u-drag.u),dy=Math.round(w-drag.w);if(!dx&&!dy)return;objs[drag.i].pts=objs[drag.i].pts.map(p=>[p[0]+dx,p[1]+dy]);drag.u+=dx;drag.w+=dy;drag.m=true;render()});
+const endDrag=()=>{if(drag&&!drag.m)hist.pop();drag=null};
+cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
+$('fr').onclick=()=>{free=true;pts=[];$('fr').classList.add('on');render()};
+$('clr').onclick=()=>{pts=[];render()};
+$('fin').onclick=()=>{if(pts.length<3)return alert('Minimal 3 titik.');addBase(pts.slice(),false);pts=[];free=false;$('fr').classList.remove('on');render()};
+$('ap').onclick=apply;$('del').onclick=()=>{if(objs[act]&&objs[act].t=='asli'){save();objs.splice(act,1);act=objs.findIndex(o=>o.t=='asli');render()}};
+$('und').onclick=()=>{if(hist.length){objs=JSON.parse(hist.pop());act=Math.min(act,objs.length-1);sel=null;bar();render()}};
+$('rst').onclick=()=>{objs=[];hist=[];pts=[];act=-1;sel=null;bar();$('info').innerHTML='';render()};
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button,section').forEach(x=>x.classList.remove('on'));b.classList.add('on');$(b.dataset.t).classList.add('on')});
+function showP(){document.querySelectorAll('.p').forEach(d=>d.style.display=d.classList.contains($('tt').value)?'flex':'none')}
+$('tt').onchange=showP;showP();
+['bg','sc','lw','al','gd','bw'].forEach(k=>$(k).oninput=()=>render());
+$('png').onclick=()=>{const t=document.createElement('canvas');t.width=t.height=W;render(t.getContext('2d'),false);
+ const u=t.toDataURL('image/png');$('out').src=u;$('dl').href=u;$('ov').style.display='block'};
+$('ibtn').onclick=()=>$('ib').style.display='flex';$('icl').onclick=()=>$('ib').style.display='none';
+$('ib').onclick=e=>{if(e.target==$('ib'))$('ib').style.display='none'};
+document.addEventListener('keydown',e=>{if(e.key=='Escape')$('ib').style.display='none'});
+$('cls').onclick=()=>$('ov').style.display='none';
+addBase(PRE['Belah ketupat'](),true);hist=[];
+</script></body></html>
